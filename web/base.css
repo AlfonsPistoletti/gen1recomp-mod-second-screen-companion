@@ -500,19 +500,34 @@ html.sprite-pal .pback {
    summary screen), the ability's text and the TRAINER MEMO */
 .nat-up { color: var(--nature-up, #e03020); }
 .nat-down { color: var(--nature-down, #3868c8); }
-/* Gen 3 card: the ball below the picture, the type badges side by side,
+/* Gen 3 card: the ball it was caught in, the type badges side by side,
    the ABILITY box and the EXP / OT / MET box */
-.pic { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .caughtball { width: 32px; height: 32px; image-rendering: pixelated; image-rendering: crisp-edges; }
+/* the ball sits at the card's right edge, its bottom level with the
+   picture's (Gen 3 pictures are 128px tall); the facts keep clear of it */
+.top.has-ball { position: relative; }
+.top.has-ball .caughtball { position: absolute; right: 0; top: 96px; }
+.top.has-ball .facts { padding-right: 40px; }
 .badges { display: flex; gap: 6px; }
 .typebadge { width: 64px; height: 24px; image-rendering: pixelated; image-rendering: crisp-edges; }
 .abilitybox, .trainerbox { margin-top: 10px; }
-.abilitybox .aname { margin-top: 6px; }
-.abilitybox .adesc { color: var(--dim); font-size: 8px; line-height: 1.6; margin-top: 4px; }
+/* the ABILITY boxes (party card, POKéDEX entry) take the --ability-*
+   colours, in every skin: the box's own frame and fill in those colours
+   (standard: the box colours, so no difference) */
+.abilitybox, .abilities {
+  --box-bg: var(--ability-bg);
+  --box-ink: var(--ability-ink);
+  --box-dim: var(--ability-dim);
+  --box-note: var(--ability-dim);
+  --box-line: var(--ability-line);
+  padding-top: 6px; padding-bottom: 6px;
+}
+.abilitybox .aname { margin-top: 2px; }
+.abilitybox .adesc { color: var(--dim); font-size: 8px; line-height: 1.5; margin-top: 2px; }
 .trainerbox .memo { margin-top: 8px; font-size: 8px; line-height: 1.8; }
 .trainerbox .memo .k { color: var(--dim); }
 .abilities { margin-top: 10px; }
-.abilities .ability { margin-top: 8px; }
+.abilities .ability { margin-top: 4px; }
 .abilities .adesc { color: var(--dim); font-size: 8px; line-height: 1.6; margin-top: 2px; }
 /* Gen 3 pictures are 64x64: shown at a whole 2x */
 html.gen3 .front { width: 128px; height: 128px; }
@@ -541,12 +556,16 @@ html.gen3 .icon { transform: translateY(var(--icon-lift)) scale(var(--icon-scale
 .move b { font-weight: normal; color: var(--ink); }
 /* Gen 3: the move's type badge (smaller than the card's, the column is narrow) */
 .move .mtype { display: inline-flex; align-items: center; gap: 4px; }
-.move .mtype .typebadge { width: 48px; height: 18px; }
+.move .mtype .typebadge { width: 32px; height: 12px; } /* the game's own size, like the text beside it */
 /* Emerald's type badges are 32x14 (FireRed's 32x12): the same widths, a
    little taller, so they keep their shape */
 html.rse .typebadge { height: 28px; }
-html.rse .carry .mtypes .typebadge, html.rse .move .mtype .typebadge { height: 21px; }
+html.rse .carry .mtypes .typebadge { height: 21px; }
+html.rse .move .mtype .typebadge { height: 14px; }
 html.rse .carry .mmove .typebadge { height: 14px; }
+/* a POKéMON's own types (party card, POKéDEX entry): 1.5x */
+.badges .typebadge { width: 48px; height: 18px; }
+html.rse .badges .typebadge { height: 21px; }
 @media (max-width: 380px) {
   .grid2 { grid-template-columns: 1fr; }
   /* five tabs on a 360px phone */
@@ -614,6 +633,13 @@ html.sprite-pal .ball:not(.css) { filter: url(#sprite-palette); }
 .effects.side { margin-bottom: 6px; }
 .foe-side { margin-top: 8px; }
 .effects.field { margin-top: 8px; }
+/* a double battle (Gen 3): two foes, and two of the player's POKéMON,
+   side by side; "whose" names the trainer or partner a POKéMON belongs to */
+.mine-cards.two { display: grid; gap: 10px; } /* the phone: one under the other */
+html.handsoff .foes.two, html.handsoff .mine-cards.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.whose { margin: 0 0 2px; }
+.pbacks { display: flex; gap: 12px; }
+.ck-trainer-gap { height: 12px; }
 /* the player's side at the bottom of a battle */
 .mine { margin-top: 10px; border-top: 2px dashed var(--ink); padding-top: 10px; }
 .mine-party { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }

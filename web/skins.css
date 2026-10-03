@@ -39,6 +39,11 @@
          the notifications: HANDS-OFF MODE's and the phone's own notices below
          the header ("Face the water"); background / text / secondary
          text / border; standard: the same as the boxes
+     --ability-bg, --ability-ink, --ability-dim, --ability-line
+         the ABILITY boxes (Gen 3 party cards and POKéDEX entries):
+         background / text / description / border; standard: the same as
+         the boxes. Any skin that sets them gets them, whatever the game;
+         FRLG and EMERALD also make them a slimmer panel (a shape rule)
      --font, --font-size
          the typeface of all text and the base text size
      TYPE ROLES: each has a -font and a -weight token
@@ -145,6 +150,11 @@ html.skin-pokedex-red {
   --notice-line: #1e2b1a;
   --notice-ink: #ffffff;
 
+  --ability-bg: #5f7556;
+  --ability-ink: #ffffff;
+  --ability-dim: #dcebd2;
+  --ability-line: #5f7556;
+
   /* pictures in the screen's greens, like the GBC POKéDEX (lightest first;
      the lightest is the screen itself) */
   --sprite-palette: #d6ecc8 #8fbf78 #3f6e3a #142818;
@@ -198,6 +208,7 @@ html.skin-pokedex-red {
   --lcd-line: 25%;
 }
 html.skin-pokedex-red.gen3 { --lcd-px: 64; }
+
 html.skin-pokedex-red.sprite-pal .front,
 html.skin-pokedex-red.sprite-pal .tpic,
 html.skin-pokedex-red.sprite-pal .foe img:not(.sticon),
@@ -356,14 +367,9 @@ html.skin-gen3 .mon.sel { box-shadow: inset 0 0 0 2px var(--box-line); }
 /* the ABILITY boxes (Gen 3): slate-blue panel, bright text, a faint edge */
 html.skin-gen3 .abilitybox,
 html.skin-gen3 .abilities {
-  --paper: var(--ability-bg);
-  --ink: var(--ability-ink);
-  --dim: var(--ability-dim);
-  --note: var(--ability-dim);
-  background: var(--ability-bg);
-  color: var(--ability-ink);
-  border: 2px solid var(--ability-line);
-  padding: 6px 12px;
+  border-width: 2px;
+  box-shadow: none;
+  padding: 4px 12px;
 }
 /* ...and kept short: tighter spacing inside */
 html.skin-gen3 .abilitybox .aname { margin-top: 2px; }
@@ -474,14 +480,9 @@ html.skin-emerald .mon.sel { box-shadow: inset 0 0 0 2px var(--box-line); }
 /* the ABILITY boxes (Gen 3): the green panel, bright text, a darker edge */
 html.skin-emerald .abilitybox,
 html.skin-emerald .abilities {
-  --paper: var(--ability-bg);
-  --ink: var(--ability-ink);
-  --dim: var(--ability-dim);
-  --note: var(--ability-dim);
-  background: var(--ability-bg);
-  color: var(--ability-ink);
-  border: 2px solid var(--ability-line);
-  padding: 6px 12px;
+  border-width: 2px;
+  box-shadow: none;
+  padding: 4px 12px;
 }
 html.skin-emerald .abilitybox .aname { margin-top: 2px; }
 html.skin-emerald .abilitybox .adesc { margin-top: 2px; line-height: 1.5; }

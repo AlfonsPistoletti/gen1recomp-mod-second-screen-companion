@@ -325,28 +325,7 @@ return function(mod)
         pcCache.dirty = true
     end
 
-    -- How long a build takes, by part: logged every 30 s when a build costs
-    -- more than 4 ms on average (so a slow part shows up in the log)
     local function clock() return love.timer.getTime() end
-    local timing = { n = 0, total = 0, max = 0, parts = {}, since = nil }
-    local function timingDone(total)
-        local now = clock()
-        timing.n, timing.total = timing.n + 1, timing.total + total
-        if total > timing.max then timing.max = total end
-        timing.since = timing.since or now
-        if now - timing.since < 30 then return end
-        local avg = timing.total / math.max(1, timing.n)
-        if avg > 0.004 then
-            local list = {}
-            for name, t in pairs(timing.parts) do list[#list + 1] = { name, t / timing.n } end
-            table.sort(list, function(a, b) return a[2] > b[2] end)
-            local parts = {}
-            for i = 1, math.min(5, #list) do parts[i] = ("%s %.1f"):format(list[i][1], list[i][2] * 1000) end
-            mod.log:info("/state: %d builds in %ds, %.1f ms each on average (max %.1f); ms by part: %s",
-                timing.n, math.floor(now - timing.since), avg * 1000, timing.max * 1000, table.concat(parts, ", "))
-        end
-        timing.n, timing.total, timing.max, timing.parts, timing.since = 0, 0, 0, {}, now
-    end
 
     -- Answers that don't change while the same save is loaded: what each
     -- item is used for (useKind / fieldKind), the status labels; the ABLE
@@ -369,18 +348,9 @@ return function(mod)
     end
 
     local function buildShared(daytime)
-        local t0 = clock()
-        local t = t0
-        local function lap(name)
-            local now = clock()
-            timing.parts[name] = (timing.parts[name] or 0) + (now - t)
-            t = now
-        end
         local ctx = {}
         local state = snapshot(game, { hidden = mod.options:get("show_hidden") and true or false, noPc = true })
-        lap("snapshot")
         state.pc = pcSummary()
-        lap("pc")
         state.secure = secure()
         state.vibration = mod.options:get("vibration") ~= false
         state.skin = mod.options:get("skin") or "standard"
@@ -425,7 +395,6 @@ return function(mod)
             state.fieldMoves = okMoves and moves or {}
             if not okMoves then mod.log:warn("field moves failed: %s", tostring(moves)) end
         end
-        lap("actions")
         if live then
             -- ?daytime=MORN|DAY|NITE: the DexNav previews another time of day (Gen 2)
             -- hidden: the battle's catch odds (SHOW HIDDEN VALUES)
@@ -437,13 +406,11 @@ return function(mod)
                 mod.log:warn("live state failed: %s", tostring(result))
             end
         end
-        lap("live")
         if minimap then
             -- LOCATION's map: a version stamp and the player's position
             local ok, result = pcall(minimap.summary, game, mod.options:get("spoilers"))
             if ok then state.minimap = result else mod.log:warn("minimap failed: %s", tostring(result)) end
         end
-        lap("minimap")
         if pokenav then
             local ok, result = pcall(pokenav.state, game)
             if ok then state.pokenav = result else mod.log:warn("pokenav state failed: %s", tostring(result)) end
@@ -452,7 +419,6 @@ return function(mod)
             local ok, result = pcall(gear.state, game)
             if ok then state.gear = result else mod.log:warn("gear state failed: %s", tostring(result)) end
         end
-        lap("pokenav/gear")
         if dex then
             local ok, result = pcall(dex.state, game, mod.options:get("spoilers"))
             if ok then
@@ -461,7 +427,6 @@ return function(mod)
                 mod.log:warn("pokedex failed: %s", tostring(result))
             end
         end
-        lap("dex")
         -- HANDS-OFF: the option, the badges for its header, and the news
         state.handsOff = mod.options:get("hands_off") and true or false
         if platform and platform.badges then
@@ -479,14 +444,12 @@ return function(mod)
             local okC, champ = pcall(platform.champion, game)
             state.champion = okC and champ or false
         end
-        lap("badges")
         if notify then
             -- (reads state.badges / state.champion as built above)
             local ok, err = pcall(notify.update, game, state)
             if not ok then mod.log:warn("notices failed: %s", tostring(err)) end
             state.notices = notify.state()
         end
-        lap("notify")
         -- the BAG's items: what USE does with each ("mon", "move", "scene",
         -- "field"), and for a TM or stone ABLE / LEARNED / NOT ABLE per
         -- POKéMON. Fixed per item (kept for the save); the marks kept while
@@ -518,7 +481,6 @@ return function(mod)
                 end
             end
         end
-        lap("bag")
         -- whether the game is in free roam (nothing open over the field):
         -- USE and GIVE wait for it, so the page offers them only then
         local okF, free = pcall(function()
@@ -544,8 +506,6 @@ return function(mod)
             state.statusIcons = m.icons
         end
         local json = Json.encode(state)
-        lap("encode")
-        timingDone(clock() - t0)
         return json, ctx
     end
 
@@ -978,10 +938,13 @@ return function(mod)
         local key = url .. "|" .. tostring(sec and pin) .. "|" .. scale .. "|" .. tostring(font)
         if hud.key ~= key then
             hud.key = key
-            hud.text = "Phone: " .. url .. (sec and ("  PIN " .. pin) or "")
-                .. (gen3 and "" or "  (QR code: OPTION > PHONE)")
-            hud.w = (font:getWidth(hud.text) + 8) * scale
-            hud.h = (font:getHeight() + 4) * scale
+            -- two lines, so it fits the narrow Game Boy screen: the address
+            -- (and PIN), then where the QR code is
+            local line1 = "Phone: " .. url .. (sec and ("  PIN " .. pin) or "")
+            local line2 = gen3 and "QR code: START > PHONE" or "QR code: OPTION > PHONE"
+            hud.text = line1 .. "\n" .. line2
+            hud.w = (math.max(font:getWidth(line1), font:getWidth(line2)) + 8) * scale
+            hud.h = (font:getHeight() * 2 + 4) * scale
         end
         local text, w, h = hud.text, hud.w, hud.h
         local x = (viewport.gameX or 0) + 4
@@ -997,9 +960,43 @@ return function(mod)
     end)
 
     -- OPTION > PHONE opens a scannable QR code of the URL. The screen is
-    -- drawn with the Game Boy font and palette, so Gen 3 goes without it.
-    if gen3 then return end
+    -- drawn with the Game Boy font and palette (Gen 3: START > PHONE, below).
     local encodeQr = runModule("qr.lua")
+    -- Gen 3: its OPTION menu takes no rows from mods, so PHONE goes into the
+    -- START menu (the ui.start_menu.items hook), just above EXIT, and opens
+    -- the same QR code drawn with FireRed's font (qr_screen3.lua)
+    if gen3 then
+        local QrScreen3 = encodeQr and runModule("qr_screen3.lua", mod, encodeQr, function()
+            if not url then return nil end
+            if secure() then return url .. "/?key=" .. key, pin end
+            return url
+        end)
+        -- development only: testbattle3.lua's START menu entries start a
+        -- double battle. The file never ships (.modkitignore and
+        -- .gitattributes leave it out of every release), so a released mod
+        -- has none of it.
+        local TestBattles = mod:info("testbattle3.lua") and runModule("testbattle3.lua", mod, platform) or nil
+        if QrScreen3 then
+            mod.hooks:wrap("ui.start_menu.items", function(next, g, items)
+                items = next(g, items)
+                if type(items) ~= "table" then return items end
+                local add = { { id = QrScreen3.ID, label = "PHONE",
+                    onSelect = function() QrScreen3.open() end } }
+                -- development only (testbattle3.lua): start a double battle
+                if TestBattles then
+                    local okT, extra = pcall(TestBattles.entries, g)
+                    for _, e in ipairs(okT and extra or {}) do add[#add + 1] = e end
+                end
+                local at = #items + 1
+                for i, e in ipairs(items) do
+                    if type(e) == "table" and e.id == "exit" then at = i end
+                end
+                for k, e in ipairs(add) do table.insert(items, at + k - 1, e) end
+                return items
+            end)
+        end
+        return
+    end
     -- the QR code carries the key only in SECURE MODE; the screen also shows
     -- the PIN then, for devices that cannot scan (a PC browser)
     local QrScreen = encodeQr and runModule("qr_screen.lua", mod, encodeQr, function()
@@ -1016,16 +1013,6 @@ return function(mod)
                 value = function() return url and "QR CODE" or "OFF" end,
                 activate = function(game) game.stack:push(QrScreen.new(game)) end
             }
-            -- Gen 2: ring the game's phone once the menu is closed, to try
-            -- the phone's ring and buzz (a harmless wrong-number call)
-            if gear and gear.testCallAvailable(g) then
-                rows[#rows + 1] = {
-                    id = "second_screen_companion.testcall",
-                    label = "TEST CALL",
-                    value = function() return gear.testCallQueued() and "QUEUED" or "RING" end,
-                    activate = function(game) gear.testCall(game) end
-                }
-            end
             return rows
         end)
     end

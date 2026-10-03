@@ -308,50 +308,10 @@ return function(mod, platform, live)
         return true
     end
 
-    ---- TEST CALL (OPTION menu) -----------------------------------------------
-    --
-    -- Rings the game's phone with the wrong-number caller (contact 0, whose
-    -- script only says "wrong number"), so the phone's ring and buzz can be
-    -- tried without a trainer's call setting anything. It waits for the
-    -- OPTION menu to close and the world to be free, like a real call.
-
-    local TEST_WAIT = 30 -- seconds a queued test call waits for a free world
-    local testQueued = nil
-
-    local function testDescriptor()
-        local ok, call = pcall(Phone.loadCallerScript, 0, "incoming", "caller")
-        return ok and call or nil
-    end
-
-    function G.testCallAvailable(game)
-        local w = world(game)
-        local call = w and testDescriptor()
-        return call and call.scriptKey and w.vm.scripts[call.scriptKey] and true or false
-    end
-
-    function G.testCallQueued() return testQueued ~= nil end
-
-    function G.testCall(game)
-        if G.testCallAvailable(game) then testQueued = now() end
-    end
-
-    local function fireTestCall(game)
-        if not testQueued then return end
-        if now() - testQueued > TEST_WAIT then testQueued = nil return end
-        if (session and not session.done) or not platform.worldFree(game) then return end
-        testQueued = nil
-        local w = world(game)
-        local call = testDescriptor()
-        if w and call and call.scriptKey and w.vm.scripts[call.scriptKey] then
-            w:receivePhoneCall(call)
-        end
-    end
-
     -- every frame: pages that move on by themselves, the idle net, and a
     -- world that went away under the call
     function G.tick(game)
         lastGame = game
-        fireTestCall(game)
         if not session or session.done then return end
         local vm = session.vm
         local w = world(game)

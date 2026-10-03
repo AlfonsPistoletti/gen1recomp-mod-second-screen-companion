@@ -535,10 +535,23 @@ return function(mod, sprites, platform)
         return #list > 0 and list or false
     end
 
+    -- The battler at a position (0 / 2 the player's side, 1 / 3 the foe's;
+    -- state.lua), while one is out there: st.player / st.enemy are 0 / 1,
+    -- st.battlers[2] / [3] a double battle's partners, st.absent[id] an
+    -- empty position (its POKéMON fainted with nobody left to send)
+    local function battlerAt(st, id)
+        local b = (id == 0 and st.player) or (id == 1 and st.enemy) or nil
+        if not b and type(st.battlers) == "table" then b = st.battlers[id] end
+        if type(b) ~= "table" or type(b.mon) ~= "table" then return nil end
+        if type(st.absent) == "table" and st.absent[id] then return nil end
+        return b
+    end
+
     local function battleOut(game, st, spoilers, hidden)
         local out = { kind = st.wild and "wild" or (st.kind or "trainer"), title = "WILD POKéMON",
             trainerPic = false, size = 0, balls = false, ballSheet = false, team = {}, active = false,
-            spoilers = spoilers }
+            spoilers = spoilers, double = st.double and true or false }
+        local twoFoes = (st.trainerB and tonumber(st.foeHalf)) and true or false
         if not st.wild then
             local name = st.trainerName
             local class = st.trainerClassName
@@ -546,72 +559,148 @@ return function(mod, sprites, platform)
             -- the trainer's front pic, as the battle draws it (trainerPicId)
             if st.trainerPicId ~= nil then out.trainerPic = art("trainer", st.trainerPicId) end
         end
+
+        -- the POKéMON out on each side: one each in a single battle, up to
+        -- two each in a double
+        local foeIds = st.double and { 1, 3 } or { 1 }
+        local myIds = st.double and { 0, 2 } or { 0 }
+        local foes, mine = {}, {}
+        for _, id in ipairs(foeIds) do
+            local b = battlerAt(st, id)
+            if b then foes[#foes + 1] = { id = id, b = b } end
+        end
+        if not st.safari then -- (no POKéMON is sent out in a SAFARI ZONE battle)
+            for _, id in ipairs(myIds) do
+                local b = battlerAt(st, id)
+                if b then mine[#mine + 1] = { id = id, b = b } end
+            end
+        end
+
+        local bySlot = knownBySlot[st] or {}
+        -- the moves a foe has been seen using: on this battle copy, on its
+        -- team slot (all of this battle) and on the team's own entry
+        local function knownFor(slot, ...)
+            local known = {}
+            for _, m in ipairs({ ... }) do
+                for id in pairs(knownMoves[m] or {}) do known[id] = true end
+            end
+            for id in pairs(slot and bySlot[slot] or {}) do known[id] = true end
+            return known
+        end
+
         local enemy = st.enemy and st.enemy.mon
         local party = not st.wild and st.foeParty or nil
+        -- the foe's team slot out at each position (the battler's POKéMON
+        -- is the battle's copy of the team's: known by its partyIndex)
+        local outAt = {}
+        for _, f in ipairs(foes) do
+            local slot = tonumber(f.b.partyIndex)
+            if slot then outAt[slot] = f.b end
+        end
         if type(party) == "table" and #party > 0 then
-            -- the battler's POKéMON is the battle's copy of the team's: the
-            -- one fighting is known by its team slot (partyIndex), and so
-            -- are the ones sent out so far and the moves they were seen using
             local seen = sentOut[st] or {}
             sentOut[st] = seen
-            local activeSlot = st.enemy and tonumber(st.enemy.partyIndex)
-            if activeSlot then seen[activeSlot] = true end
-            local bySlot = knownBySlot[st] or {}
+            for slot in pairs(outAt) do seen[slot] = true end
             out.size = #party
             -- the lineup of six balls, as the battle's party summary shows it
             out.ballSheet = art("balls")
             out.balls = {}
             for i = 1, 6 do out.balls[i] = ballFrame(party[i]) end
             for i, mon in ipairs(party) do
-                local active = (activeSlot and i == activeSlot) or mon == enemy
+                local battler = outAt[i]
+                local active = battler ~= nil or (not st.double and mon == enemy)
                 local revealed = spoilers or active or seen[i]
                 local entry = { slot = i, active = active and true or false, revealed = revealed and true or false,
                     ball = ballFrame(mon) }
                 if revealed then
-                    -- the one fighting: as the battle has it (HP, status)
-                    local src = (active and enemy) or mon
+                    -- one out fighting: as the battle has it (HP, status)
+                    local src = (battler and battler.mon) or mon
                     for k, v in pairs(monInfo(src)) do entry[k] = v end
                     entry.icon = art("icon", mon)
-                    local known = {}
-                    for id in pairs(knownMoves[mon] or {}) do known[id] = true end
-                    for id in pairs(bySlot[i] or {}) do known[id] = true end
-                    if active and enemy then
-                        for id in pairs(knownMoves[enemy] or {}) do known[id] = true end
-                    end
-                    entry.moves = movesFor(src, spoilers, known)
+                    entry.moves = movesFor(src, spoilers, knownFor(i, mon, battler and battler.mon))
                 end
                 out.team[i] = entry
             end
+            -- two trainers against you (Emerald): each with their own half
+            -- of the team (st.foeHalf), picture and balls
+            if twoFoes then
+                local half = tonumber(st.foeHalf)
+                local B = st.trainerB
+                local nameB = (B.className and B.className ~= "" and B.name and (B.className .. " " .. B.name))
+                    or B.name or B.className or "TRAINER"
+                local function side(title, pic, from, to)
+                    local t = { title = title, trainerPic = pic, team = {}, balls = {}, size = 0 }
+                    for i = from, to do
+                        if party[i] then
+                            t.team[#t.team + 1] = out.team[i]
+                            t.balls[#t.balls + 1] = out.team[i].ball
+                            t.size = t.size + 1
+                        end
+                    end
+                    return t
+                end
+                out.trainers = {
+                    side(out.title, out.trainerPic, 1, half),
+                    side(nameB, B.pic ~= nil and art("trainer", B.pic) or false, half + 1, #party),
+                }
+                out.title = out.title .. " & " .. nameB
+            end
         end
-        if enemy then
-            out.active = monInfo(enemy)
-            out.active.front = art("front", enemy)
-            out.active.moves = movesFor(enemy, spoilers)
-            local sp = try(Pokemon.speciesOf, enemy)
-            out.active.owned = sp and platform.ownedSet(platform.save(game))[sp] and true or false
+
+        -- each foe out: its card (as out.active always was), its stat
+        -- changes and effects; in a two-trainer battle, whose it is
+        local actives = {}
+        for _, f in ipairs(foes) do
+            local m = f.b.mon
+            local slot = tonumber(f.b.partyIndex)
+            local e = monInfo(m)
+            e.front = art("front", m)
+            e.moves = movesFor(m, spoilers, knownFor(slot, m, party and slot and party[slot]))
+            local sp = try(Pokemon.speciesOf, m)
+            e.owned = sp and platform.ownedSet(platform.save(game))[sp] and true or false
+            e.stages = stagesOf(f.b.stages)
+            e.effects = battlerEffects(f.b, hidden)
+            e.pos, e.slot = f.id, slot
+            if twoFoes and slot then e.trainer = slot <= tonumber(st.foeHalf) and 1 or 2 end
+            actives[#actives + 1] = e
         end
+        out.actives = actives
+        out.active = actives[1] or false
+
+        -- the player's side: each POKéMON out, with its card, stat changes
+        -- and effects. In a battle with a partner (STEVEN, a link multi),
+        -- position 2 is the partner's POKéMON, not one of the player's.
+        local withPartner = (st.partner or st.playerHalf or st.multi) and true or false
+        local players, mySlots = {}, {}
+        for _, p in ipairs(mine) do
+            local m = p.b.mon
+            local e = monInfo(m)
+            e.icon = art("icon", m)
+            -- its front pic: the HANDS-OFF view draws it facing the foe
+            e.front = art("front", m)
+            e.stages = stagesOf(p.b.stages)
+            e.effects = battlerEffects(p.b, hidden)
+            e.pos, e.slot = p.id, tonumber(p.b.partyIndex)
+            if withPartner and p.id == 2 then
+                e.partner = true
+                e.partnerName = type(st.partner) == "table" and st.partner.name or false
+            elseif e.slot then
+                mySlots[#mySlots + 1] = e.slot
+            end
+            players[#players + 1] = e
+        end
+        out.players = players
+        out.playerSlots = mySlots
+        out.player = players[1] or false
+        out.playerSlot = mySlots[1] or false
+
         -- the battle's scenery, as it draws it (battle/bg.lua: the terrain
         -- this battle was set up with), for the HANDS-OFF backdrop
         local okBg, BattleBg = pcall(require, "src.core.game3.battle.bg")
         local sceneKey = okBg and BattleBg.sheetKey and try(BattleBg.sheetKey) or nil
         local sceneId = sceneKey and sprites and sprites.battleScene and try(sprites.battleScene, sceneKey)
         out.scene = sceneId and ("/img/" .. sceneId .. ".png") or false
-        -- the player's POKéMON in the fight: its party slot (st.player.partyIndex)
-        out.playerSlot = st.player and tonumber(st.player.partyIndex) or false
-        -- its card and both sides' stat changes (the battlers' stages)
-        local mine = st.player and st.player.mon
-        -- (none in a SAFARI ZONE battle: no POKéMON is sent out there)
-        if type(mine) == "table" and not st.safari then
-            out.player = monInfo(mine)
-            out.player.icon = art("icon", mine)
-            -- its front pic: the HANDS-OFF view draws it facing the foe
-            out.player.front = art("front", mine)
-            out.player.stages = stagesOf(st.player.stages)
-        end
-        if out.active then out.active.stages = stagesOf(st.enemy and st.enemy.stages) end
-        -- multi-turn effects: each battler's, then each side's
-        if out.player and st.player then out.player.effects = battlerEffects(st.player, hidden) end
-        if out.active and st.enemy then out.active.effects = battlerEffects(st.enemy, hidden) end
+        -- each side's effects (REFLECT, SPIKES ...), and the whole field's
         local sides = { player = sideEffects(st.playerSide, hidden), enemy = sideEffects(st.enemySide, hidden) }
         if sides.player or sides.enemy then out.sides = sides end
         out.field = fieldEffects(st, hidden)

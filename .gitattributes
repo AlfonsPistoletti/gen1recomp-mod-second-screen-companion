@@ -1,0 +1,2 @@
+# development-only files: not in the GitHub release zip (git archive)
+testbattle3.lua export-ignore

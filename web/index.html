@@ -517,18 +517,16 @@
       var img = el("img", "front");
       setSprite(img, mon.front);
       img.alt = mon.species;
-      // Gen 3: the POKé BALL it was caught in, below the picture's left edge
+      top.appendChild(img);
+      // Gen 3: the POKé BALL it was caught in, at the right edge, level
+      // with the picture's bottom
       if (caught.ballIcon) {
-        var pic = el("div", "pic");
-        pic.appendChild(img);
         var ballImg = el("img", "caughtball");
         ballImg.src = caught.ballIcon;
         ballImg.alt = caught.ball || "";
         if (caught.ball) ballImg.title = caught.ball;
-        pic.appendChild(ballImg);
-        top.appendChild(pic);
-      } else {
-        top.appendChild(img);
+        top.classList.add("has-ball");
+        top.appendChild(ballImg);
       }
       // Crystal: animate once when the card opens (not on every refresh)
       var fresh = open && !animSeen[mon.uid];
@@ -2270,26 +2268,50 @@
     return card;
   }
 
+  // The POKéMON out on each side: one in a single battle, up to two in a
+  // double (Gen 3), in their positions' order
+  function battleFoes(b) {
+    var l = list(b.actives);
+    return l.length ? l : (b.active ? [b.active] : []);
+  }
+  function battlePlayers(b) {
+    var l = list(b.players);
+    return l.length ? l : (b.player ? [b.player] : []);
+  }
+  // the player's own party slots out fighting (a partner's aren't in the party)
+  function battleSlots(b) {
+    var l = list(b && b.playerSlots);
+    return l.length ? l : (b && b.playerSlot ? [b.playerSlot] : []);
+  }
+
   // the player's side, at the bottom of a battle: the party as a row of
-  // icons with the one fighting marked (moving and bright), then
-  // its card: name, level, HP and stat changes
+  // icons with the ones fighting marked (moving and bright), then a card
+  // for each POKéMON out: name, level, HP and stat changes (a partner's
+  // POKéMON, in a multi battle, labelled with the partner's name)
   var partyNow = [];
   function playerCard(b) {
     var wrap = el("div", "mine");
-    // HANDS-OFF: the POKéMON's own picture in the room above the party, on
+    var players = battlePlayers(b);
+    var slots = battleSlots(b);
+    // HANDS-OFF: each POKéMON's own picture in the room above the party, on
     // the left, turned to face the foe (the phone's view leaves it out)
-    if (b.player && b.player.front) {
-      var pic = el("img", "pback");
-      setSprite(pic, b.player.front);
-      pic.alt = "";
-      wrap.appendChild(pic);
+    var pics = players.filter(function (p) { return p.front; });
+    if (pics.length) {
+      var prow = el("div", "pbacks");
+      pics.forEach(function (p) {
+        var pic = el("img", "pback");
+        setSprite(pic, p.front);
+        pic.alt = "";
+        prow.appendChild(pic);
+      });
+      wrap.appendChild(prow);
     }
     if (b.sides && b.sides.player) wrap.appendChild(effectRow(b.sides.player, "side"));
     var mons = partyNow;
-    if (mons.length > 1 && b.playerSlot) {
+    if (mons.length > 1 && slots.length) {
       var row = el("div", "mine-party");
       mons.forEach(function (m, i) {
-        var on = i === b.playerSlot - 1;
+        var on = slots.indexOf(i + 1) >= 0;
         var ic = el("div", "icon" + (on ? " on" : " still") + (m.hp === 0 ? " out" : ""));
         if (m.icon) ic.style.backgroundImage = "url(" + m.icon + ")";
         ic.title = m.name || "";
@@ -2297,11 +2319,12 @@
       });
       wrap.appendChild(row);
     }
-    var p = b.player;
-    if (p) {
+    var cards = el("div", "mine-cards" + (players.length > 1 ? " two" : ""));
+    players.forEach(function (p) {
       // no icon of its own: the party row above marks the one fighting
       var card = el("div", "foe me");
       var info = el("div", "fi");
+      if (p.partner) info.appendChild(el("div", "sec-k whose", p.partnerName || "PARTNER"));
       var line = el("div", "line1");
       line.appendChild(nameInto(el("span", "name"), p.name));
       if (p.status) line.appendChild(statusMark(p.status, "st"));
@@ -2315,8 +2338,9 @@
       if (p.effects) badges.appendChild(effectRow(p.effects));
       info.appendChild(badges);
       card.appendChild(info);
-      wrap.appendChild(card);
-    }
+      cards.appendChild(card);
+    });
+    if (players.length) wrap.appendChild(cards);
     return wrap;
   }
 
@@ -2454,12 +2478,15 @@
     if (b.field) box.appendChild(effectRow(b.field, "side field"));
     if (b.sides && b.sides.enemy) box.appendChild(effectRow(b.sides.enemy, "side foe-side"));
     var head = el("div", "bhead");
-    if (b.trainerPic) {
+    var pics = list(b.trainers).length
+      ? list(b.trainers).map(function (t) { return t.trainerPic; }) : [b.trainerPic];
+    pics.forEach(function (src) {
+      if (!src) return;
       var pic = el("img", "tpic");
-      setSprite(pic, b.trainerPic);
+      setSprite(pic, src);
       pic.alt = "";
       head.appendChild(pic);
-    }
+    });
     var title = el("div", "btitle");
     var versus = b.kind === "trainer" || b.kind === "link";
     if (versus) title.appendChild(el("div", "bn", b.title));
@@ -2473,12 +2500,30 @@
     // a wild battle has no trainer: its section starts with the foe
     if (!noTrainer && (b.trainerPic || versus || b.balls)) box.appendChild(head);
 
-    if (stage && b.active) {
-      box.appendChild(foeStage(b, b.active, noTrainer));
-      if (b.player || b.playerSlot || (b.sides && b.sides.player)) box.appendChild(playerCard(b));
+    var foes = battleFoes(b);
+    var mineToo = battlePlayers(b).length || battleSlots(b).length || (b.sides && b.sides.player);
+    // in a two-trainer battle, each foe says whose it is
+    function whose(a) {
+      var t = a.trainer && list(b.trainers)[a.trainer - 1];
+      return t ? el("div", "sec-k whose", t.title) : null;
+    }
+    if (stage && foes.length) {
+      var foeRow = el("div", "foes" + (foes.length > 1 ? " two" : ""));
+      foes.forEach(function (a) {
+        var st = foeStage(b, a, noTrainer);
+        var w = whose(a);
+        if (w) st.insertBefore(w, st.firstChild);
+        foeRow.appendChild(st);
+      });
+      box.appendChild(foeRow);
+      if (mineToo) box.appendChild(playerCard(b));
       return box;
     }
-    if (b.active) box.appendChild(foeCard(b.active));
+    foes.forEach(function (a) {
+      var w = whose(a);
+      if (w) box.appendChild(w);
+      box.appendChild(foeCard(a));
+    });
     if (b.safari) box.appendChild(safariOdds(b.safari));
     if (b.catch) box.appendChild(catchOdds(b.catch));
 
@@ -2523,7 +2568,7 @@
       box.appendChild(moveList(b.active.moves, b.spoilers));
     }
     // a SAFARI ZONE battle sends no POKéMON out: no player's side
-    if (b.kind !== "safari" && !b.safari && (b.player || b.playerSlot || (b.sides && b.sides.player))) box.appendChild(playerCard(b));
+    if (b.kind !== "safari" && !b.safari && mineToo) box.appendChild(playerCard(b));
     return box;
   }
 
@@ -4577,11 +4622,16 @@
     // and status from the battle, as its card there shows them, so the
     // party (and the HANDS-OFF party column) drains along with the fight
     var lb = state.live && state.live.battle;
-    var lbMon = lb && lb.playerSlot && lb.player ? partyNow[lb.playerSlot - 1] : null;
-    if (lbMon && !lbMon.egg) {
-      lbMon.hp = lb.player.hp;
-      if (lb.player.maxHp) lbMon.maxHp = lb.player.maxHp;
-      lbMon.status = lb.player.status || false;
+    if (lb) {
+      // (a double battle has two out; a partner's POKéMON isn't in the party)
+      battlePlayers(lb).forEach(function (p) {
+        var slot = p.partner ? null : (p.slot || (p === lb.player ? lb.playerSlot : null));
+        var lbMon = slot ? partyNow[slot - 1] : null;
+        if (!lbMon || lbMon.egg) return;
+        lbMon.hp = p.hp;
+        if (p.maxHp) lbMon.maxHp = p.maxHp;
+        lbMon.status = p.status || false;
+      });
     }
     // the items tab takes the game's name for it (BAG / PACK)
     var bagTab = tabButtons[TAB_IDS.indexOf("items")];
@@ -4817,7 +4867,7 @@
     ckActivity(state);
     var live = state.live || {};
     cockpitHead(state, live);
-    cockpitParty(list(state.party), live.battle && live.battle.playerSlot);
+    cockpitParty(list(state.party), live.battle ? battleSlots(live.battle) : []);
     drawStage(false, live);
     cockpitSafari(live);
     cockpitNav(live);
@@ -4934,15 +4984,15 @@
   }
 
   // marked in a battle only: the POKéMON fighting (its party slot)
-  function cockpitParty(mons, activeSlot) {
-    var active = activeSlot ? activeSlot - 1 : -1;
-    if (!changed("party", [mons, active])) return;
+  function cockpitParty(mons, activeSlots) {
+    var fighting = list(activeSlots);
+    if (!changed("party", [mons, fighting])) return;
     var box = ck.party;
     box.textContent = "";
     box.appendChild(el("div", "sec-k", word("POKEMON", "POKéMON")));
     if (!mons.length) box.appendChild(el("div", "empty", "No party yet."));
     mons.forEach(function (m, i) {
-      var row = el("div", "ck-mon" + (i === active ? " fighting" : ""));
+      var row = el("div", "ck-mon" + (fighting.indexOf(i + 1) >= 0 ? " fighting" : ""));
       var ic = el("div", "icon");
       if (m.icon) ic.style.backgroundImage = "url(" + m.icon + ")";
       row.appendChild(ic);
@@ -5019,31 +5069,44 @@
   // SPOILERS) with icon, level and the moves seen so far; the rest a ball
   // and ???. The one fighting is marked. Shrinks to fit, like DEXNAV.
   function cockpitTrainer(b) {
-    if (!changed("nav", ["trainer", b.title, b.trainerPic, b.balls, b.team, b.spoilers])) return;
+    if (!changed("nav", ["trainer", b.title, b.trainerPic, b.balls, b.team, b.trainers, b.spoilers])) return;
     var box = ck.nav;
     box.textContent = "";
-    box.appendChild(el("div", "sec-k", "TRAINER"));
+    var many = list(b.trainers).length > 1;
+    box.appendChild(el("div", "sec-k", many ? "TRAINERS" : "TRAINER"));
     var body = el("div", "ck-navbody ck-trainer");
     box.appendChild(body);
+    // two trainers against you: each with their own picture, balls and team
+    var blocks = many ? list(b.trainers) : [b];
+    blocks.forEach(function (tr, n) {
+      if (n > 0) body.appendChild(el("div", "ck-trainer-gap"));
+      trainerBlock(body, tr, b);
+    });
+    fitToBox(box, body);
+  }
+  // one trainer: picture, name, balls, then each POKéMON of the team
+  // (revealed ones with icon, level and the moves seen so far; the rest a
+  // ball and ???), the ones out fighting pulsing
+  function trainerBlock(body, tr, b) {
     var head = el("div", "bhead");
-    if (b.trainerPic) {
+    if (tr.trainerPic) {
       var pic = el("img", "tpic");
-      setSprite(pic, b.trainerPic);
+      setSprite(pic, tr.trainerPic);
       pic.alt = "";
       head.appendChild(pic);
     }
     var title = el("div", "btitle");
-    title.appendChild(el("div", "bn", b.title));
-    if (b.balls) {
+    title.appendChild(el("div", "bn", tr.title));
+    if (tr.balls) {
       var balls = el("div", "balls");
-      b.balls.forEach(function (f) { balls.appendChild(ball(b.ballSheet, f, 16)); });
+      tr.balls.forEach(function (f) { balls.appendChild(ball(b.ballSheet, f, 16)); });
       title.appendChild(balls);
-      title.appendChild(el("div", "sec-k", "TEAM " + b.size));
+      title.appendChild(el("div", "sec-k", "TEAM " + tr.size));
     }
     head.appendChild(title);
     body.appendChild(head);
     var t = el("div", "team");
-    list(b.team).forEach(function (m) {
+    list(tr.team).forEach(function (m) {
       // the one fighting pulses, like the party column's
       var entry = el("div", "tentry" + (m.active ? " fighting" : ""));
       var row = el("div", "trow" + (m.active ? " act" : "") + (m.revealed ? "" : " hidden"));
@@ -5065,7 +5128,6 @@
       t.appendChild(entry);
     });
     body.appendChild(t);
-    fitToBox(box, body);
   }
 
   function cockpitNav(live) {

@@ -31,6 +31,12 @@
   --notice-dim: var(--box-dim);
   --notice-line: var(--box-line);
 
+  /* ---- the ABILITY boxes (Gen 3): boxes too, unless a skin says otherwise */
+  --ability-bg: var(--box-bg);
+  --ability-ink: var(--box-ink);
+  --ability-dim: var(--box-dim);
+  --ability-line: var(--box-line);
+
   /* ---- shapes and type ------------------------------------------------ */
   --box-radius: 6px;        /* corners of the boxes */
   --radius: 4px;            /* corners of buttons and chips */

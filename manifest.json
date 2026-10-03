@@ -1,20 +1,28 @@
 {
   "id": "second_screen_companion",
   "name": "Second Screen Companion",
-  "version": "0.2.0",
+  "version": "0.9.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
   "game_version": ">=0.0.0-dev <1.0.0",
-  "category": "UI",
-  "priority": 100,
+  "category": "TOOL",
+  "priority": 1000,
   "dependencies": [],
   "optional_dependencies": [],
   "conflicts": [],
   "incompatible": [],
-  "games": ["gen1", "gen2", "frlg", "emerald"],
+  "games": [
+    "gen1",
+    "gen2",
+    "gen3"
+  ],
   "experimental": false,
-  "permissions": ["network", "engine_internals"],
+  "permissions": [
+    "network",
+    "engine_internals"
+  ],
   "assets_transforms": "transforms.lua",
-  "description": "Live party overview on your phone: open the URL shown in-game in any browser on the same Wi-Fi"
+  "description": "See your team, battles, map, DexNav, bag, PC and Pokédex live on your phone, tablet or TV. Open the address shown in the game in any browser on the same Wi-Fi.",
+  "github": "AlfonsPistoletti/gen1recomp-mod-second-screen-companion"
 }
