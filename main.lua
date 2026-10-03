@@ -179,7 +179,10 @@ return function(mod)
     local game
     local server
     local url
-    local urlTimer = 0
+    -- when the startup message was first drawn (nil: not yet). Counted from
+    -- the first frame it's on screen, not from the bind: a game's first,
+    -- loading-heavy frames can bring one dt that would use it all up unseen.
+    local urlShownAt
     local retryTimer = 0
     local lastBindError
 
@@ -869,7 +872,6 @@ return function(mod)
     -- the server's options, read twice a second rather than every frame
     local optTimer, optWanted, optPort = 0, nil, 8080
     local function sync(dt)
-        urlTimer = math.max(0, urlTimer - dt)
         optTimer = optTimer - dt
         if optTimer <= 0 then
             optTimer = 0.5
@@ -889,7 +891,7 @@ return function(mod)
             server, err = Server.new(port, handle)
             if server then
                 url = ("http://%s:%d"):format(lanAddress(), port)
-                urlTimer = URL_SECONDS
+                urlShownAt = nil
                 lastBindError = nil
                 mod.log:info("companion page at %s", url)
             else
@@ -924,11 +926,29 @@ return function(mod)
         return next(g, dt)
     end)
 
+    -- Quitting a game on desktop starts a fresh copy of the program for the
+    -- launcher (HostShell.restart), and Windows hands that copy the open
+    -- sockets, so the listener would keep the port from the next game.
+    -- love.quit asks this hook just before, so the server closes here, every
+    -- time: from here the program either restarts or exits.
+    mod.hooks:wrap("core.quit_to_launcher", function(next, ...)
+        if server then
+            pcall(server.stop, server)
+            server, url = nil, nil
+        end
+        return next(...)
+    end)
+
     local hud = {}
     mod.hooks:wrap("render.hud", function(next, g, viewport)
         next(g, viewport)
         local mode = mod.options:get("show_url")
-        if not url or mode == "off" or (mode == "start" and urlTimer <= 0) then return end
+        if not url or mode == "off" then return end
+        if mode == "start" then
+            local now = love.timer.getTime()
+            urlShownAt = urlShownAt or now
+            if now - urlShownAt > URL_SECONDS then return end
+        end
 
         local lg = love.graphics
         local scale = math.max(1, math.floor((viewport.scale or 2) / 2))

@@ -689,7 +689,11 @@ on for shared networks, and **PHONE SERVER** off on untrusted ones.
 - `snapshot3.lua`, `sprites3.lua`, `live3.lua`, `dex3.lua`, `area3.lua`, `edits3.lua`: the
   Gen 3 (FireRed / LeafGreen) versions of the party / bag / PC data, the
   pictures, the LIVE data, the POKéDEX and the AREA view
-- `server.lua`: non-blocking HTTP responder pumped each frame
+- `server.lua`: non-blocking HTTP responder pumped each frame. It closes in
+  `core.quit_to_launcher`, since desktop restarts the program for the
+  launcher and Windows would hand the listener to the new copy. A new server
+  also closes one left over in the same program (Android and iOS return
+  in-process).
 - `snapshot.lua`: party, bag and boxes to a JSON-ready table (read-only)
 - `edits.lua`: bag swaps and box moves, only while the game is free-roaming
 - `uids.lua`: stable ids for boxed POKéMON

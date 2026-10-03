@@ -49,11 +49,12 @@ return function(mod, socket)
     -- handler(req) -> status, contentType, body[, maxAge]
     -- req = { method, path, query, headers (lowercase names), body }
     -- maxAge (seconds) lets the browser cache the response; default no-store
-    -- Quitting a game to the launcher drops this mod instance without telling
-    -- it (no event fires), so its listener would hold the port until the
-    -- garbage collector found it and the next game's companion couldn't bind.
-    -- The running server is noted on the luasocket module, which stays loaded
-    -- for the whole run, and a new one closes the one before it first.
+    -- On Android and iOS, quitting a game goes back to the launcher in the
+    -- same program (desktop restarts it; main.lua closes the server first).
+    -- That drops this mod instance without telling it, so its listener would
+    -- hold the port until the garbage collector found it. The running server
+    -- is noted on the luasocket module, which stays loaded for the whole run,
+    -- and a new one closes the one before it first.
     local HOLDER = "__second_screen_companion_server"
 
     function Server.new(port, handler)
