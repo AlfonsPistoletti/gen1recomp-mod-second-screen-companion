@@ -1,0 +1,136 @@
+/* The page's standard look: the Game Boy menus, for every game (Gen 1,
+   2 and 3). Served as /theme.css. The SKIN mod option's other looks
+   (skins.css) override any of these tokens, on any game. */
+:root {
+  /* ---- the header: the tab bar at the top ---------------------------- */
+  --header-bg: #ffffff;     /* background */
+  --header-ink: #181818;    /* tab names, the cursor */
+  --header-dim: #8a8a8a;    /* secondary text (the PIN hint) */
+  --header-line: #181818;   /* the line under the header */
+  --tab-active-bg: rgba(0, 0, 0, .2); /* behind the active tab: a darker
+                                         shade of whatever the header is */
+  --tab-active-ink: var(--header-ink);   /* the active tab's name */
+  --tab-active-radius: 6px;              /* its corners */
+
+  /* ---- the page: notes, the space around the boxes ------------------- */
+  --page-bg: #ffffff;       /* background */
+  --page-ink: #181818;      /* text and lines */
+  --page-dim: #8a8a8a;      /* secondary text, faint lines */
+  --page-note: var(--page-dim); /* notes on the page (e.g. "SPOILERS are on") */
+
+  /* ---- the boxes: the game-style text boxes holding the content ------ */
+  --box-bg: #ffffff;        /* background */
+  --box-ink: #181818;       /* text, and the fill of selected buttons */
+  --box-dim: #8a8a8a;       /* secondary text, dotted leaders */
+  --box-line: #181818;      /* the double border */
+  --box-note: var(--box-dim);   /* notes inside a box */
+
+  /* ---- HANDS-OFF notifications: boxes too, unless a skin says otherwise */
+  --notice-bg: var(--box-bg);
+  --notice-ink: var(--box-ink);
+  --notice-dim: var(--box-dim);
+  --notice-line: var(--box-line);
+
+  /* ---- shapes and type ------------------------------------------------ */
+  --box-radius: 6px;        /* corners of the boxes */
+  --radius: 4px;            /* corners of buttons and chips */
+  --font-size: 10px;        /* base text size */
+
+  /* ---- type: each kind of text has a font and a weight --------------- */
+  --font: "Press Start 2P", "Courier New", monospace; /* body: all other text */
+  --body-weight: normal;
+  --heading-font: var(--font);  /* the default for label, title, subhead */
+
+  --label-font: var(--heading-font);   /* small section headings:        */
+  --label-weight: normal;              /*   LOCATION, DEXNAV, PHONE, HT   */
+  --title-font: var(--heading-font);   /* a box's main heading:          */
+  --title-weight: normal;              /*   ROUTE 34, BOX 1, entry names  */
+  --subhead-font: var(--heading-font); /* a heading inside a section:    */
+  --subhead-weight: normal;            /*   GRASS · NITE, FIELD MOVES     */
+  --name-font: var(--font);            /* names in lists: POKéMON,       */
+  --name-weight: normal;               /*   items, contacts               */
+  --note-font: var(--font);            /* the small grey hints           */
+  --note-weight: normal;
+  --tab-font: var(--heading-font);     /* the tab names                  */
+  --tab-weight: normal;
+  --desc-font: var(--font);            /* a POKéDEX entry's description  */
+  --desc-weight: var(--body-weight);
+  --desc-leading: 2.25;
+  /* line height (-leading) and letter spacing (-tracking) per kind, left
+     unset so every element keeps its own; set one in a skin, e.g.
+       --body-leading: 1.6;   --body-tracking: normal;
+       --label-leading: 1.4;  --label-tracking: .06em;
+     (also --title-, --subhead-, --name-, --note-, --tab- and --desc-;
+     --desc-leading is 2 until set) */
+
+  /* ---- buttons: each group on its own. The standard values point at
+     the colour set the buttons sit on, so a skin that only changes the
+     box / page colours gets matching buttons for free. ------------------ */
+
+  /* LIVE > QUICK ACTIONS, the item row (BIKE, rods, SQUIRTBOTTLE) */
+  --item-btn-bg: var(--box-ink);        /* background */
+  --item-btn-ink: var(--box-bg);        /* label */
+  --item-btn-line: var(--box-ink);      /* border */
+  --item-btn-off: var(--box-dim);       /* background when unavailable */
+  --item-btn-off-line: var(--item-btn-off); /* border when unavailable */
+  --item-btn-radius: var(--radius);     /* corners, like the field moves */
+  --item-btn-shadow: none;              /* e.g. a 3D edge, see skins.css */
+  --item-btn-shadow-down: var(--item-btn-shadow); /* while pressed */
+
+  /* LIVE > QUICK ACTIONS, the field moves (CUT, FLY, SURF, ...) */
+  --move-btn-bg: var(--box-bg);
+  --move-btn-ink: var(--box-ink);
+  --move-btn-sub: var(--box-dim);       /* the small line (who / why not) */
+  --move-btn-line: var(--box-ink);
+  --move-btn-off: var(--box-dim);       /* label when unavailable */
+  --move-btn-off-line: var(--move-btn-off); /* border when unavailable */
+  --move-btn-on-bg: var(--box-ink);     /* the move whose chooser is open */
+  --move-btn-on-ink: var(--box-bg);
+  --move-btn-radius: var(--radius);
+  --move-btn-shadow: none;
+  --move-btn-shadow-down: var(--move-btn-shadow);
+
+  /* POKéMON, SWITCH and DETAILS */
+  --party-btn-bg: var(--page-bg);
+  --party-btn-ink: var(--page-ink);
+  --party-btn-line: var(--page-ink);
+  --party-btn-off: var(--page-dim);     /* label when unavailable */
+  --party-btn-off-line: var(--party-btn-off); /* border when unavailable */
+  --party-btn-radius: var(--radius);
+  --party-btn-shadow: none;
+  --party-btn-shadow-down: var(--party-btn-shadow);
+
+  /* PC, the box buttons (1, 2, 3 ...) */
+  --pc-btn-bg: var(--page-bg);
+  --pc-btn-ink: var(--page-ink);
+  --pc-btn-line: var(--page-ink);
+  --pc-btn-on-bg: var(--page-ink);      /* the box on screen */
+  --pc-btn-on-ink: var(--page-bg);
+  --pc-btn-current: var(--hp-green);    /* dot on the game's current box */
+  --pc-btn-radius: var(--radius);
+  --pc-btn-shadow: none;
+  --pc-btn-shadow-down: var(--pc-btn-shadow);
+
+  /* how far a pressed button moves down (with a 3D shadow: its height) */
+  --btn-press-move: 0px;
+
+  /* ---- POKéMON and trainer pictures: their white is see-through, so
+     they need a background of their own (white, like in the game) ---- */
+  --sprite-bg: #ffffff;
+  /* four colours, lightest first, to show the pictures in (like the GBC
+     POKéDEX's screen), or none for their own colours */
+  --sprite-palette: none;
+
+  /* ---- the ♂ / ♀ symbols: a light blue / red-magenta tint ------------ */
+  --male-ink: #3868c8;
+  --female-ink: #c83878;
+  --shiny-ink: currentColor;  /* the shiny mark ⁂: the text's colour */
+
+  /* ---- signals: HP bars, map markers, the current box / time ----------- */
+  --hp-green: #38b848;
+  --hp-yellow: #f0b000;
+  --hp-red: #e03020;
+
+  /* ---- behind a pop-up (POKéDEX entry, phone call) -------------------- */
+  --backdrop: rgba(24, 24, 24, .45);
+}

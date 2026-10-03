@@ -1,0 +1,635 @@
+/* web fonts used by the skins below (an @import must come first) */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+/* ======================================================================
+   SKINS for the Second Screen Companion page
+   ======================================================================
+
+   The SKIN mod option (OPTION > MODS in the game) lists every skin in
+   this file, and every skin works on every game. STANDARD, the first
+   choice, is no skin at all: the Game Boy look from standard.css.
+
+   ADDING A SKIN
+   1. Copy a skin block below (from its @skin line to its closing brace).
+   2. Change the @skin line:   @skin <id> "<NAME IN THE OPTION>"
+        <id>   lower case letters, digits and dashes, e.g. pokedex-red
+        NAME   what the option shows, e.g. "POKéDEX RED"
+   3. Rename the selector to   html.skin-<id>   (the same id).
+   4. Change the values. Leave out any token you don't want to change:
+      it then keeps the standard value.
+   5. Restart the game (the option list is read at start-up); the page
+      itself picks up edits to this file on reload.
+
+   THE TOKENS
+     --header-bg, --header-ink, --header-dim, --header-line
+         the header with the tab bar (background / tab names / secondary
+         text / the line under it)
+     --tab-active-bg, --tab-active-ink, --tab-active-radius
+         the active tab (background, standard a light shade of black / its
+         name / corners)
+     --page-bg, --page-ink, --page-dim, --page-note
+         the page: the space around the boxes (background / text and
+         lines / secondary text / notes such as "SPOILERS are on")
+     --box-bg, --box-ink, --box-dim, --box-line, --box-note
+         the boxes holding the content (background / text, and the fill
+         of selected buttons / secondary text / the double border / notes)
+     --box-radius, --radius
+         corners of the boxes / of buttons and chips
+     --notice-bg, --notice-ink, --notice-dim, --notice-line
+         the notifications: HANDS-OFF MODE's and the phone's own notices below
+         the header ("Face the water"); background / text / secondary
+         text / border; standard: the same as the boxes
+     --font, --font-size
+         the typeface of all text and the base text size
+     TYPE ROLES: each has a -font and a -weight token
+         --label-font    small section headings (LOCATION, DEXNAV, HT / WT)
+         --title-font    a box's main heading (ROUTE 34, BOX 1, entry names)
+         --subhead-font  a heading inside a section (GRASS · NITE, FIELD MOVES)
+         --name-font     names in lists (POKéMON, items, contacts)
+         --note-font     the small grey hints
+         --tab-font      the tab names
+         --desc-font     a POKéDEX entry's description
+         --font / --body-weight   everything else
+       e.g.  --title-weight: bold;  --note-font: "Courier New", monospace;
+       Each role also has -leading (line height) and -tracking (letter
+       spacing), unset unless a skin sets them:
+         --body-leading: 1.8;  --note-leading: 2;  --label-tracking: .06em;
+       A line height is best given without a unit (1.8 = 1.8 x the size).
+       --heading-font sets label, title and subhead at once. The pixel font
+       has no bold of its own: keep weights normal with it (browsers fake
+       bold by smearing it).
+         A web font needs its @import as the FIRST line of this file, e.g.
+           @import url("https://fonts.googleapis.com/css2?family=VT323&display=swap");
+         then:  --heading-font: "VT323", monospace;
+         Most sizes are fixed for the pixel font, so a very different
+         font may need its sizes adjusted with a rule (see GOING FURTHER).
+     --sprite-bg
+         behind POKéMON and trainer pictures (standard white: the game
+         draws their white as see-through)
+     --sprite-palette
+         four colours, lightest first, that every POKéMON and trainer
+         picture is shown in, like the GBC POKéDEX's green screen:
+           --sprite-palette: #e0f8d0 #88c070 #346856 #081820;
+         (the lightest one is also the picture's background). Standard:
+         none, the pictures keep their own colours.
+     --male-ink, --female-ink, --shiny-ink
+         the tint of the ♂ / ♀ symbols (standard: a light blue / red-magenta)
+         and of the shiny mark (standard: the text colour)
+     --hp-green, --hp-yellow, --hp-red
+         HP bars, map markers, the current box / time dots
+     --backdrop
+         the tint behind a pop-up (POKéDEX entry, phone call)
+
+   BUTTON TOKENS (standard: they follow the colours the buttons sit on)
+     --item-btn-bg, -ink, -line, -off, -off-line, -radius
+         LIVE > QUICK ACTIONS, the item row (BIKE, rods, SQUIRTBOTTLE)
+     --move-btn-bg, -ink, -sub, -line, -off, -off-line, -on-bg, -on-ink, -radius
+         LIVE > QUICK ACTIONS, the field moves (-sub: the small second
+         line, -on: the move whose chooser is open)
+     --party-btn-bg, -ink, -line, -off, -off-line, -radius
+         POKéMON, SWITCH and DETAILS
+     --pc-btn-bg, -ink, -line, -on-bg, -on-ink, -current, -radius
+         PC, the box buttons (-on: the box on screen, -current: the dot on
+         the game's current box)
+     -bg background, -ink label, -line border, -off unavailable (the label;
+     the item row's background), -off-line the border when unavailable
+     (standard: the same as -off).
+     Every group also has
+     -shadow, -shadow-down   its box-shadow, and the one while pressed
+     and all share
+     --btn-press-move        how far a pressed button moves down
+     A -bg can be a gradient too, e.g. linear-gradient(#ff5a5a, #b0101a).
+
+   3D BUTTONS
+   A raised button is a hard shadow under it; pressed, the shadow goes and
+   the button moves down by the same amount, so it sinks in:
+       --move-btn-shadow: 0 4px 0 #3a0a0e;
+       --move-btn-shadow-down: 0 0 0 #3a0a0e;
+       --btn-press-move: 4px;
+   Add an inset highlight for a rounder face:
+       --move-btn-shadow: inset 0 2px 0 rgba(255,255,255,.5), 0 4px 0 #3a0a0e;
+   The POKéDEX RED block below has a full example to uncomment.
+
+   GOING FURTHER
+   Any rule can be skinned, not only tokens: start its selector with the
+   skin's class, e.g.
+       html.skin-pokedex-red .tab { text-transform: lowercase; }
+   and add .gen1 / .gen2 / .gen3 for one generation only:
+       html.gen2.skin-pokedex-red { --box-bg: #f8f0d8; }
+   ====================================================================== */
+
+
+/* @skin pokedex-red "POKéDEX RED" ---------------------------------------
+   A red POKéDEX: red casing around pale green screens. */
+html.skin-pokedex-red {
+  /* the lid: a darker red than the casing, a maroon seam under it */
+  --header-bg: #b8141f;
+  --header-ink: #ffffff;
+  --header-dim: #ffc9cc;
+  --header-line: #4a0a10;
+
+  /* the red casing around the screens */
+  --page-bg: #d8202c;
+  --page-ink: #ffffff;
+  --page-dim: #ffc9cc;
+  --page-note: #ffe3e5;     /* notes on the red (e.g. "SPOILERS are on") */
+
+  /* the pale lime screens */
+  --box-bg: #d6ecc8;
+  --box-ink: #1e2b1a;       /* dark green text */
+  --box-dim: #5f7556;
+  --box-line: #4a0a10;      /* the same maroon as the seam */
+  --box-note: #5f7556;
+
+  --notice-bg: #1e2b1a;
+  --notice-line: #1e2b1a;
+  --notice-ink: #ffffff;
+
+  /* pictures in the screen's greens, like the GBC POKéDEX (lightest first;
+     the lightest is the screen itself) */
+  --sprite-palette: #d6ecc8 #8fbf78 #3f6e3a #142818;
+
+  --box-radius: 10px;
+  --radius: 6px;
+
+  --backdrop: rgba(74, 10, 16, .55);
+
+  /* buttons (uncomment to change; see BUTTON TOKENS above) */
+  /* --item-btn-bg: #4a0a10; */
+  --move-btn-bg: #E8CF2A; --move-btn-ink: #000000; --move-btn-line: #000000;
+  --party-btn-bg: #E8CF2A; --party-btn-ink: #000000; --party-btn-line: #000000;
+  --pc-btn-bg: #1e2b1a;
+  --pc-btn-on-bg: #E8CF2A; --pc-btn-on-ink: #000000; --pc-btn-line: #000000;
+
+  /* 3D buttons like a POKéDEX's keys (uncomment the whole group) */
+  /*
+  --btn-press-move: 4px;
+  --item-btn-bg: linear-gradient(#34482e, #1e2b1a);
+  --item-btn-shadow: inset 0 2px 0 rgba(255,255,255,.2), 0 4px 0 #0a1208;
+  --item-btn-shadow-down: inset 0 2px 0 rgba(255,255,255,.2), 0 0 0 #0a1208;
+  --move-btn-bg: linear-gradient(#eef8e6, #c2dcb0);
+  --move-btn-shadow: 0 4px 0 #3f6e3a;
+  --move-btn-shadow-down: 0 0 0 #3f6e3a;
+  --party-btn-bg: linear-gradient(#ffffff, #f2d4d6);
+  --party-btn-ink: #b8141f;
+  --party-btn-line: #4a0a10;
+  --party-btn-shadow: 0 3px 0 #4a0a10;
+  --party-btn-shadow-down: 0 0 0 #4a0a10;
+  --pc-btn-line: #4a0a10;
+  --pc-btn-shadow: 0 3px 0 #4a0a10;
+  --pc-btn-shadow-down: 0 0 0 #4a0a10;
+  */
+
+  /* other fonts (uncomment; a web font's @import goes on this file's
+     first line, see THE TOKENS) */
+  /* --heading-font: "VT323", monospace; */
+  /* --note-font: "Courier New", monospace; */
+}
+
+
+/* POKéDEX RED's pictures as a green LCD: a mask lets the screen's lightest
+   green show through a thin line between every game pixel (the gaps
+   between LCD cells), one cell per pixel of the game's picture (56 across
+   on Gen 1 / 2, 64 on Gen 3, whatever size it's shown at). Turn it down with --lcd-gap (how much
+   shows through, 0-1) or --lcd-line (the line's share of a cell). */
+html.skin-pokedex-red {
+  --lcd-px: 56;
+  --lcd-gap: .35;
+  --lcd-line: 25%;
+}
+html.skin-pokedex-red.gen3 { --lcd-px: 64; }
+html.skin-pokedex-red.sprite-pal .front,
+html.skin-pokedex-red.sprite-pal .tpic,
+html.skin-pokedex-red.sprite-pal .foe img:not(.sticon),
+html.skin-pokedex-red.sprite-pal .pback {
+  --lcd-cell: calc(100% / var(--lcd-px));
+  -webkit-mask-image:
+    linear-gradient(to right, #000 calc(100% - var(--lcd-line)), rgba(0, 0, 0, calc(1 - var(--lcd-gap))) 0),
+    linear-gradient(to bottom, #000 calc(100% - var(--lcd-line)), rgba(0, 0, 0, calc(1 - var(--lcd-gap))) 0);
+  mask-image:
+    linear-gradient(to right, #000 calc(100% - var(--lcd-line)), rgba(0, 0, 0, calc(1 - var(--lcd-gap))) 0),
+    linear-gradient(to bottom, #000 calc(100% - var(--lcd-line)), rgba(0, 0, 0, calc(1 - var(--lcd-gap))) 0);
+  -webkit-mask-size: var(--lcd-cell) var(--lcd-cell);
+  mask-size: var(--lcd-cell) var(--lcd-cell);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  border-radius: 4px;
+}
+
+/* @skin gen3 "FRLG" ------------------------------------------------------
+   FireRed / LeafGreen's menus: the menu red header, a warm cream page,
+   white boxes in one thick slate-blue frame (the GBA windows' single
+   line, not the Game Boy's double one), the ABILITY panels in that slate
+   blue with bright text, and the summary screen's colours for a nature's
+   raised / lowered stat. Works on every game. */
+html.skin-gen3 {
+  /* ---- the header: the tab bar at the top ---------------------------- */
+  --header-bg: #e8604a;     /* background: FireRed's menu red */
+  --header-ink: #ffffff;    /* tab names, the cursor */
+  --header-dim: #ffd8d0;    /* secondary text (the PIN hint) */
+  --header-line: #a83828;   /* the line under the header */
+  --tab-active-bg: rgba(0, 0, 0, .2);
+  --tab-active-ink: var(--header-ink);
+  --tab-active-radius: 6px;
+
+  /* ---- the page: notes, the space around the boxes ------------------- */
+  --page-bg: #f8f4e8;       /* background */
+  --page-ink: #383840;      /* text and lines */
+  --page-dim: #909098;      /* secondary text, faint lines */
+  --page-note: var(--page-dim);
+
+  /* ---- the boxes: the game-style text boxes holding the content ------ */
+  --box-bg: #ffffff;
+  --box-ink: #383840;
+  --box-dim: #909098;
+  --box-line: #6878a0;      /* the slate-blue frame of FRLG's windows */
+  --box-note: var(--box-dim);
+
+  /* ---- shapes and type ------------------------------------------------ */
+  --box-radius: 8px;
+  --radius: 4px;
+  --font-size: 10px;
+
+  --font: "Press Start 2P", "Courier New", monospace;
+  --body-weight: normal;
+  --heading-font: var(--font);
+  --label-font: var(--heading-font);
+  --label-weight: normal;
+  --title-font: var(--heading-font);
+  --title-weight: normal;
+  --subhead-font: var(--heading-font);
+  --subhead-weight: normal;
+  --name-font: var(--font);
+  --name-weight: normal;
+  --note-font: var(--font);
+  --note-weight: normal;
+  --tab-font: var(--heading-font);
+  --tab-weight: normal;
+  --desc-font: var(--font);
+  --desc-weight: var(--body-weight);
+  --desc-leading: 2.25;
+
+  /* ---- buttons (see standard.css for what each group is) ------------------ */
+  --item-btn-bg: var(--box-ink);
+  --item-btn-ink: var(--box-bg);
+  --item-btn-line: var(--box-ink);
+  --item-btn-off: var(--box-dim);
+  --item-btn-off-line: var(--item-btn-off);
+  --item-btn-radius: var(--radius);
+  --item-btn-shadow: none;
+  --item-btn-shadow-down: var(--item-btn-shadow);
+
+  --move-btn-bg: var(--box-bg);
+  --move-btn-ink: var(--box-ink);
+  --move-btn-sub: var(--box-dim);
+  --move-btn-line: var(--box-ink);
+  --move-btn-off: var(--box-dim);
+  --move-btn-off-line: var(--move-btn-off);
+  --move-btn-on-bg: var(--box-ink);
+  --move-btn-on-ink: var(--box-bg);
+  --move-btn-radius: var(--radius);
+  --move-btn-shadow: none;
+  --move-btn-shadow-down: var(--move-btn-shadow);
+
+  --party-btn-bg: var(--page-bg);
+  --party-btn-ink: var(--page-ink);
+  --party-btn-line: var(--page-ink);
+  --party-btn-off: var(--page-dim);
+  --party-btn-off-line: var(--party-btn-off);
+  --party-btn-radius: var(--radius);
+  --party-btn-shadow: none;
+  --party-btn-shadow-down: var(--party-btn-shadow);
+
+  --pc-btn-bg: var(--page-bg);
+  --pc-btn-ink: var(--page-ink);
+  --pc-btn-line: var(--page-ink);
+  --pc-btn-on-bg: var(--page-ink);
+  --pc-btn-on-ink: var(--page-bg);
+  --pc-btn-current: var(--hp-green);
+  --pc-btn-radius: var(--radius);
+  --pc-btn-shadow: none;
+  --pc-btn-shadow-down: var(--pc-btn-shadow);
+
+  --btn-press-move: 0px;
+
+  /* ---- POKéMON pictures: GBA art is in full colour already ------------ */
+  --sprite-bg: #ffffff;
+  --sprite-palette: none;
+
+  /* ---- the ♂ / ♀ symbols -------------------------------------------- */
+  --male-ink: #3868c8;
+  --female-ink: #d84860;
+  --shiny-ink: currentColor;
+
+  /* ---- a nature's raised / lowered stat (the summary screen's colours) */
+  --nature-up: #e03020;
+  --nature-down: #3868c8;
+
+  /* ---- the ABILITY boxes (party card, POKéDEX entry): a greyish blue
+     panel in the frames' slate blue, with bright text ---------- */
+  --ability-bg: #6878a0;
+  --ability-ink: #ffffff;
+  --ability-dim: #dde3f2;
+  --ability-line: #7886ac;  /* a faint edge, barely off the panel */
+
+  /* ---- HANDS-OFF notifications: on the ABILITY panel's colours -------- */
+  --notice-bg: var(--ability-bg);
+  --notice-ink: var(--ability-ink);
+  --notice-dim: var(--ability-dim);
+  --notice-line: var(--ability-line);
+
+  /* ---- signals: HP bars, map markers, the current box ------------------ */
+  --hp-green: #38b848;
+  --hp-yellow: #f0b000;
+  --hp-red: #e03020;
+
+  /* ---- behind a pop-up (POKéDEX entry) ------------------------------- */
+  --backdrop: rgba(24, 24, 32, .45);
+}
+/* GBA text boxes have one thick frame, not the Game Boy's double line */
+html.skin-gen3 .box {
+  border-width: 4px;
+  box-shadow: none;
+}
+/* a picked party card: its frame grows thicker instead */
+html.skin-gen3 .mon.sel { box-shadow: inset 0 0 0 2px var(--box-line); }
+/* the ABILITY boxes (Gen 3): slate-blue panel, bright text, a faint edge */
+html.skin-gen3 .abilitybox,
+html.skin-gen3 .abilities {
+  --paper: var(--ability-bg);
+  --ink: var(--ability-ink);
+  --dim: var(--ability-dim);
+  --note: var(--ability-dim);
+  background: var(--ability-bg);
+  color: var(--ability-ink);
+  border: 2px solid var(--ability-line);
+  padding: 6px 12px;
+}
+/* ...and kept short: tighter spacing inside */
+html.skin-gen3 .abilitybox .aname { margin-top: 2px; }
+html.skin-gen3 .abilitybox .adesc { margin-top: 2px; line-height: 1.5; }
+html.skin-gen3 .abilities .ability { margin-top: 4px; }
+html.skin-gen3 .abilities .adesc { margin-top: 1px; line-height: 1.5; }
+/* HANDS-OFF notifications: framed like the ABILITY panels */
+html.skin-gen3 .ck-toast, html.skin-gen3 #toast { border-width: 2px; }
+/* HANDS-OFF in a place with a location preview (MT. MOON, VIRIDIAN FOREST
+   ...): the picture is the dashboard's backdrop, and the boxes turn dark
+   (the text's colour as their background, white text) and let it show
+   through. The notifications keep their own colours. */
+html.skin-gen3 .cockpit.ck-art .box:not(.ck-toast) {
+  --box-bg: rgba(56, 56, 64, .8);
+  --box-ink: #ffffff;
+  --box-dim: #c8c8d4;
+  --box-note: #c8c8d4;
+  --box-line: #6878a0;
+}
+
+
+/* @skin emerald "EMERALD" ------------------------------------------------
+   Emerald's heroes' clothes (BRENDAN and MAY, their Emerald outfits as
+   PROF. BIRCH shows them, rse birch/brendan.png and may.png): MAY's red
+   shirt for the header, the green of the bandanas that gives the game its
+   name for the stripe under it and the active tab, a warm cream page like
+   FRLG's, and MAY's charcoal and grey for the text and the boxes' thick
+   frame (the GBA's single line); green ABILITY panels. Works on every
+   game. */
+html.skin-emerald {
+  /* ---- the header: MAY's red shirt, the bandana's green under it ------ */
+  --header-bg: #c54242;
+  --header-ink: #ffffff;
+  --header-dim: #ffd0c8;
+  --header-line: #639c5a;
+  --tab-active-bg: #639c5a;
+  --tab-active-ink: #ffffff;
+  --tab-active-radius: 6px;
+
+  /* ---- the page: warm cream, as FRLG's ------------------------------- */
+  --page-bg: #f8f4e8;
+  --page-ink: #293a42;
+  --page-dim: #8c8c94;
+  --page-note: #636373;
+
+  /* ---- the boxes: white, MAY's charcoal text, a grey frame ------------ */
+  --box-bg: #ffffff;
+  --box-ink: #293a42;
+  --box-dim: #8c8c94;
+  --box-line: #706880;
+  --box-note: var(--box-dim);
+
+  --box-radius: 8px;
+  --radius: 4px;
+
+  /* ---- buttons: the shirt's red for items, green for what's open ------ */
+  --item-btn-bg: #c54242;
+  --item-btn-ink: #ffffff;
+  --item-btn-line: #a33434;
+  --item-btn-off: #c8c4bc;
+  --item-btn-off-line: var(--item-btn-off);
+  --move-btn-bg: #ffffff;
+  --move-btn-ink: #293a42;
+  --move-btn-sub: #8c8c94;
+  --move-btn-line: #706880;
+  --move-btn-on-bg: #639c5a;
+  --move-btn-on-ink: #ffffff;
+  --party-btn-bg: #ffffff;
+  --party-btn-ink: #293a42;
+  --party-btn-line: #706880;
+  --party-btn-off: #b8b4ac;
+  --pc-btn-bg: #ffffff;
+  --pc-btn-ink: #293a42;
+  --pc-btn-line: #706880;
+  --pc-btn-on-bg: #639c5a;
+  --pc-btn-on-ink: #ffffff;
+  --pc-btn-current: #c54242;
+
+  /* ---- the ABILITY panels: the bandanas' green, bright text ----------- */
+  --ability-bg: #639c5a;
+  --ability-ink: #ffffff;
+  --ability-dim: #e3f5dc;
+  --ability-line: #4f8448;
+
+  /* ---- HANDS-OFF notifications: on the ABILITY panel's colours -------- */
+  --notice-bg: var(--ability-bg);
+  --notice-ink: var(--ability-ink);
+  --notice-dim: var(--ability-dim);
+  --notice-line: var(--ability-line);
+
+  /* ---- symbols and signals ------------------------------------------- */
+  --male-ink: #4a6ac8;
+  --female-ink: #c54242;
+  --nature-up: #c54242;
+  --nature-down: #4a6ac8;
+  --hp-green: #639c5a;
+  --hp-red: #c54242;
+
+  --backdrop: rgba(41, 58, 66, .5);
+}
+/* GBA text boxes: one thick frame, not the Game Boy's double line */
+html.skin-emerald .box {
+  border-width: 4px;
+  box-shadow: none;
+}
+/* a picked party card: its frame grows thicker instead */
+html.skin-emerald .mon.sel { box-shadow: inset 0 0 0 2px var(--box-line); }
+/* the ABILITY boxes (Gen 3): the green panel, bright text, a darker edge */
+html.skin-emerald .abilitybox,
+html.skin-emerald .abilities {
+  --paper: var(--ability-bg);
+  --ink: var(--ability-ink);
+  --dim: var(--ability-dim);
+  --note: var(--ability-dim);
+  background: var(--ability-bg);
+  color: var(--ability-ink);
+  border: 2px solid var(--ability-line);
+  padding: 6px 12px;
+}
+html.skin-emerald .abilitybox .aname { margin-top: 2px; }
+html.skin-emerald .abilitybox .adesc { margin-top: 2px; line-height: 1.5; }
+html.skin-emerald .abilities .ability { margin-top: 4px; }
+html.skin-emerald .abilities .adesc { margin-top: 1px; line-height: 1.5; }
+/* HANDS-OFF notifications: framed like the ABILITY panels */
+html.skin-emerald .ck-toast, html.skin-emerald #toast { border-width: 2px; }
+/* HANDS-OFF on FireRed / LeafGreen in a place with a location preview (MT.
+   MOON, VIRIDIAN FOREST ...): the picture is the backdrop, and the boxes
+   turn dark (the text's slate as their background, white text) and let it
+   show through. The notifications keep their own colours. */
+html.skin-emerald .cockpit.ck-art .box:not(.ck-toast) {
+  --box-bg: rgba(41, 58, 66, .8);
+  --box-ink: #ffffff;
+  --box-dim: #c4ccd0;
+  --box-note: #c4ccd0;
+  --box-line: #706880;
+}
+/* the header's line: the bandana's green, a touch thicker */
+html.skin-emerald .chrome { border-bottom-width: 4px; }
+
+
+/* @skin dark "DARK" ------------------------------------------------------
+   The standard look, inverted: light text on near-black, boxes a step
+   lighter than the page so they still read as boxes. */
+html.skin-dark {
+  --header-bg: #16181c;
+  --header-ink: #e6e8eb;
+  --header-dim: #8a9099;
+  --header-line: #3a3f47;   /* a soft line, not a white one */
+  --tab-active-bg: rgba(255, 255, 255, .12);
+
+  --page-bg: #0f1113;
+  --page-ink: #e6e8eb;
+  --page-dim: #8a9099;
+  --page-note: #8a9099;
+
+  --box-bg: #1c1f24;        /* a step lighter than the page */
+  --box-ink: #e6e8eb;       /* text, and the fill of selected buttons */
+  --box-dim: #8a9099;
+  --box-line: #4a515b;      /* the double border: a quiet grey */
+  --box-note: #8a9099;
+
+  /* pictures in soothing blue-greys, dark to light: the see-through white
+     becomes the screen, the black outlines the lightest shade, so they
+     read on dark (the order is white, light, dark, black in the game) */
+  --sprite-palette: #8a9099 #4a515b #1c1f24 #0f1113;
+
+  /* ♂ / ♀ tints, lighter so they read on dark */
+  --male-ink: #7fa6f2;
+  --female-ink: #f07fb4;
+
+  /* signals, a touch brighter so they hold up on dark */
+  --hp-green: #4fcf5f;
+  --hp-yellow: #f5c542;
+  --hp-red: #ff5f4f;
+
+  --backdrop: rgba(0, 0, 0, .65);
+}
+
+
+/* @skin modern "MODERN" --------------------------------------------------
+   The standard white look as a modern app: light grey page with
+   white cards, thin lines, rounder corners and bold headings. */
+html.skin-modern {
+  --header-bg: #ffffff;
+  --header-ink: #111827;
+  --header-dim: #6b7280;
+  --header-line: #e5e7eb;
+  --tab-active-bg: rgba(17, 24, 39, .07);
+  --tab-active-radius: 8px;
+
+  --page-bg: #f3f4f6;
+  --page-ink: #111827;
+  --page-dim: #6b7280;
+  --page-note: #6b7280;
+
+  --box-bg: #ffffff;
+  --box-ink: #111827;
+  --box-dim: #6b7280;
+  --box-line: #e5e7eb;
+  --box-note: #6b7280;
+
+  --box-radius: 14px;
+  --radius: 8px;
+
+  --font: "Roboto Mono", monospace;
+  --heading-font: var(--font);
+  --name-font: "Roboto", sans-serif;
+  --desc-font: "Roboto", sans-serif;
+  --label-font: "Roboto", sans-serif;
+  --note-font: "Roboto", sans-serif;
+  /* --label-font    small section headings (LOCATION, DEXNAV, HT / WT)
+         --title-font    a box's main heading (ROUTE 34, BOX 1, entry names)
+         --subhead-font  a heading inside a section (GRASS · NITE, FIELD MOVES)
+         --name-font     names in lists (POKéMON, items, contacts)
+         --note-font     the small grey hints
+         --tab-font      the tab names
+         --desc-font     a POKéDEX entry's description */
+  --body-weight: 500;
+  --body-tracking: 0.75px;
+  --label-weight: 400;
+  --title-weight: 800;
+  --subhead-weight: 600;
+  --name-weight: 400;
+  --note-weight: 300;
+  --tab-weight: 600;
+  --tab-tracking: -0.25px;
+  /* small grey section labels, spaced out a little */
+  --label-tracking: .06em;
+  --desc-tracking: 1px;
+  --desc-leading: 2.25;
+
+  /* buttons: dark filled keys and light outlined ones, on the card */
+  --move-btn-line: #d1d5db;
+  --party-btn-bg: #ffffff;
+  --party-btn-line: #d1d5db;
+  --pc-btn-bg: #ffffff;
+  --pc-btn-line: #d1d5db;
+
+  --hp-green: #22c55e;
+  --hp-yellow: #eab308;
+  --hp-red: #ef4444;
+
+  --backdrop: rgba(17, 24, 39, .4);
+}
+
+/* The page's sizes are set for the pixel font, whose capitals fill the
+   whole letter box; Inter's are much smaller. font-size-adjust scales Inter
+   to a similar letter height everywhere at once, instead of resizing every
+   element. Smooth letters instead of the pixel font's hard edges. */
+html.skin-modern body {
+  font-size-adjust: .78;
+  -webkit-font-smoothing: antialiased;
+}
+/* the boxes as cards: one thin line and a soft shadow instead of the
+   Game Boy's double frame */
+html.skin-modern .box {
+  border-width: 1px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, .06);
+}
+html.skin-modern .chrome { border-bottom-width: 1px; }
+/* line heights set for the pixel font are too tight for the scaled-up
+   Inter: the buttons' two-line labels get room again */
+html.skin-modern .bikebtn, html.skin-modern .fbtn { line-height: 1.9; }
+/* the buttons' small second line (who / why not): lowercase comes out
+   large in Inter, so a size down to sit clearly under the label */
+html.skin-modern .fsub { font-size-adjust: .6; line-height: 1.6; }
+/* the POKéDEX grid sizes names for the pixel font's letter widths; a
+   smaller Inter keeps short names from spilling out of their cell */
+html.skin-modern .dcell .dname { font-size-adjust: .62; }

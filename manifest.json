@@ -1,0 +1,20 @@
+{
+  "id": "second_screen_companion",
+  "name": "Second Screen Companion",
+  "version": "0.2.0",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "content",
+  "game_version": ">=0.0.0-dev <1.0.0",
+  "category": "UI",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "incompatible": [],
+  "games": ["gen1", "gen2", "frlg", "emerald"],
+  "experimental": false,
+  "permissions": ["network", "engine_internals"],
+  "assets_transforms": "transforms.lua",
+  "description": "Live party overview on your phone: open the URL shown in-game in any browser on the same Wi-Fi"
+}

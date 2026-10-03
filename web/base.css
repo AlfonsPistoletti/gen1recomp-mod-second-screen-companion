@@ -1,0 +1,1436 @@
+/* Second Screen Companion: the layout, shared by every generation and skin.
+
+   No colours, fonts or corner sizes are set in here directly: they all come
+   from the tokens (CSS variables) defined in
+     - standard.css          the standard look (served as /theme.css)
+     - skins.css             the skins the SKIN mod option picks from
+   so a new look never needs this file. See skins.css for the token list.
+
+   How the colour sets work: the header (tab bar) uses the --header-*
+   tokens, the page (notes, the space around the boxes) the --page-* tokens
+   and every box the --box-* tokens. Each is handed to the rules below as
+   the same three short names, which is what lets one rule serve every
+   place:
+     --paper  the background
+     --ink    text and lines
+     --dim    secondary text and faint lines */
+* { box-sizing: border-box; }
+body {
+  --paper: var(--page-bg);
+  --ink: var(--page-ink);
+  --dim: var(--page-dim);
+  --note: var(--page-note);
+}
+/* boxes, plus the content drawn without a box frame (the POKéDEX grid's
+   cells) that still belongs on the box colours */
+.box, .dcell {
+  --paper: var(--box-bg);
+  --ink: var(--box-ink);
+  --dim: var(--box-dim);
+  --note: var(--box-note);
+}
+html, body { margin: 0; background: var(--page-bg); color: var(--page-ink); height: 100%; }
+/* iPhone: Safari tints the status bar (clock, battery) from a sticky
+   element at the top, else from the page's background; both are the
+   header's colour, so the bar matches the header in every skin. Only the
+   header's safe-area strip ever shows the html background. */
+html { background: var(--header-bg); }
+/* The page itself never scrolls: the tab bar stays put, the pager
+   scrolls sideways between tabs and each tab scrolls on its own. */
+body {
+  font: var(--font-size)/1.6 var(--font);
+  font-weight: var(--body-weight);
+  line-height: var(--body-leading, 1.6);
+  letter-spacing: var(--body-tracking, normal);
+  height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column; overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: none;
+}
+button { font: inherit; color: inherit; }
+
+/* Game Boy text box: a thick outer line and a thin inner one */
+.box {
+  border: 3px solid var(--box-line);
+  border-radius: var(--box-radius);
+  box-shadow: inset 0 0 0 2px var(--box-bg), inset 0 0 0 4px var(--box-line);
+  padding: 10px 12px;
+  background: var(--box-bg);
+  color: var(--box-ink);
+}
+
+/* the header: tab bar (and the PIN bar), on its own colour set */
+.chrome {
+  --paper: var(--header-bg);
+  --ink: var(--header-ink);
+  --dim: var(--header-dim);
+  flex: none; padding: max(10px, env(safe-area-inset-top)) 16px 8px;
+  position: sticky; top: 0; z-index: 5; /* for Safari's status bar tint (above) */
+  background: var(--header-bg); color: var(--header-ink);
+  border-bottom: 3px solid var(--header-line);
+}
+.chrome > * { max-width: 560px; margin-left: auto; margin-right: auto; }
+header { display: flex; align-items: center; gap: 8px; }
+
+/* tab bar: the active tab sits on a slightly darker rounded background.
+   Every tab is as tall as the tallest (the icon) and centres its name or
+   icon, so all the backgrounds are one height. */
+.tabs { flex: 1; display: flex; justify-content: space-between; align-items: stretch; gap: 2px; }
+.tab {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; border-radius: var(--tab-active-radius);
+  padding: 3px 5px; font-size: 9px; cursor: pointer;
+  white-space: nowrap; -webkit-tap-highlight-color: transparent;
+}
+/* the names sit 2px lower than the icon's middle: they look centred then */
+.tab:not(.tab-icon) { padding-top: 5px; padding-bottom: 1px; }
+.tab[hidden] { display: none; } /* GEAR on Gen 1 */
+.tab.on { background: var(--tab-active-bg); color: var(--tab-active-ink); }
+.banner { display: none; margin-top: 8px; font-size: 9px; }
+/* SECURE MODE pairing, only on the tabs that can rearrange */
+.pinbar { display: none; align-items: center; gap: 8px; margin-top: 8px; font-size: 9px; flex-wrap: wrap; }
+body.need-pin.tab-edit .pinbar, body.need-pin.tab-live.has-bike .pinbar,
+body.need-pin.party-switch .pinbar, body.need-pin.tab-gear .pinbar { display: flex; }
+
+/* LIVE: the BICYCLE shortcut */
+.bikebox { margin-top: 8px; }
+/* the first sub-heading right under QUICK ACTIONS' own header */
+.bikebox .fold-body > .fhead:first-child { margin-top: 0; }
+/* key items (BIKE, rods): one row, one column per item */
+.irow { display: grid; gap: 6px; }
+.bikebtn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  width: 100%; min-width: 0; min-height: 52px; font: inherit; font-size: 10px; line-height: 1.4;
+  padding: 8px 4px; cursor: pointer; text-align: center;
+  background: var(--ink); color: var(--paper); border: 0; border-radius: var(--box-radius);
+  -webkit-tap-highlight-color: transparent;
+}
+.bikebtn .fsub { font-size: 7px; overflow-wrap: anywhere; }
+/* long item names (Gen 2's SQUIRTBOTTLE) wrap instead of spilling out */
+.bikebtn .flabel { max-width: 100%; overflow-wrap: anywhere; }
+.bikebtn:disabled { background: var(--dim); cursor: default; }
+.bikebox .note { margin: 8px 0 0; }
+/* field moves: a grid of buttons like the PC's box buttons */
+.fhead { margin: 12px 0 8px; }
+.irow + .fhead { margin-top: 14px; }
+.fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fbtn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 48px; padding: 6px 4px; font: inherit; font-size: 9px; text-align: center;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: var(--radius);
+  cursor: pointer; -webkit-tap-highlight-color: transparent; min-width: 0;
+}
+.fbtn .fsub { font-size: 7px; color: var(--dim); line-height: 1.4; overflow-wrap: anywhere; }
+.fbtn:disabled { border-color: var(--dim); color: var(--dim); cursor: default; }
+.fbtn.on, .fbtn.yes { background: var(--ink); color: var(--paper); }
+.fbtn.on .fsub { color: var(--paper); }
+.picker { margin-top: 10px; border-top: 2px dashed var(--ink); padding-top: 10px; }
+.picker .ptitle { margin: 0 0 8px; font-size: 9px; line-height: var(--subhead-leading, 1.8); }
+.pinbar input {
+  width: 5.5em; font: inherit; font-size: 16px; letter-spacing: .1em; padding: 4px 6px; /* 16px: no iOS zoom */
+  border: 2px solid var(--ink); border-radius: var(--radius); background: var(--paper); color: var(--ink);
+}
+.pinhint { font-size: 8px; color: var(--dim); }
+.offline .banner { display: block; }
+
+.pager {
+  flex: 1; min-height: 0; display: flex;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.pager::-webkit-scrollbar { display: none; }
+.panel {
+  flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always;
+  overflow-y: auto; overscroll-behavior-y: contain;
+}
+.inner {
+  max-width: 560px; margin: 0 auto;
+  padding: 10px 16px max(20px, env(safe-area-inset-bottom));
+}
+.toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+/* ITEM / PACK: SORT, its three orders, and UNDO */
+.bagtools { margin-bottom: 8px; }
+.bagtools .toolbar { margin-bottom: 0; }
+.bagtools .mode.on { background: var(--ink); color: var(--paper); }
+.bagtools .sortchips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.bagtools .note { margin: 8px 0 0; }
+.toolbar .mode:disabled { color: var(--dim); border-color: var(--dim); cursor: default; }
+.mode {
+  background: var(--paper); border: 2px solid var(--ink); border-radius: var(--radius);
+  padding: 6px 8px; font-size: 8px; cursor: pointer;
+}
+.empty { padding: 20px 0; text-align: center; line-height: 2; }
+
+/* ITEMS: the BAG list plus the money box */
+.money { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.items { display: grid; gap: 10px; }
+.items .count-line { color: var(--dim); font-size: 8px; }
+.item { display: flex; align-items: baseline; gap: 8px; }
+.item .iname { flex: 1; min-width: 0; }
+/* a count's row: the name only as wide as it is, then a faint dotted
+   leader to the count ("POTION ........ ×5") */
+.item:has(.lead) .iname { flex: 0 1 auto; }
+.item .lead {
+  flex: 1; min-width: 12px; align-self: flex-end; margin-bottom: 0.35em;
+  border-bottom: 2px dotted var(--dim); opacity: .5;
+}
+/* the same leader in PC box rows and DexNav rows ("PIDGEY ···· L2-4 55%");
+   those rows centre their items, so the dots sit on the text's baseline */
+.pcrow .lead, .dexrow .lead {
+  flex: 1; min-width: 12px; align-self: center; margin-top: 0.5em;
+  border-bottom: 2px dotted var(--dim); opacity: .5;
+}/* a TM / HM's move, on the same line as its number ("TM01 DYNAMICPUNCH") */
+.item .sub { color: var(--dim); font-size: 8px; margin-left: 8px; }
+.item .qty { white-space: nowrap; }
+/* PC: the tapped POKéMON's sheet, like the BAG's item sheet: full width,
+   up from the bottom, as tall as its content (capped, then it scrolls);
+   no backdrop, so the box above stays usable for moving */
+.carry {
+  position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto;
+  max-height: 60vh; max-height: 60dvh; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-bottom: 0; border-radius: 10px 10px 0 0;
+}
+.carry.rise { animation: sheet-up .2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .carry.rise { animation: none; } }
+.carry[hidden], body:not(.tab-pc) .carry { display: none; }
+.carry .icon { grid-row: auto; flex: none; }
+/* the head, as on the item sheet: icon, name :Lv, where it is, X */
+.carry .ihead { display: flex; align-items: center; gap: 10px; }
+.carry .ititle { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.carry .ititle .iname { font-size: 10px; }
+.carry .ititle .sub { color: var(--dim); font-size: 8px; margin-left: 8px; }
+.carry .iclose {
+  flex: none; width: 36px; height: 36px; font: inherit; font-size: 10px; color: inherit;
+  background: none; border: 0; cursor: pointer;
+}
+.carry .idesc { margin: 0; font-size: 8px; line-height: 1.9; color: var(--dim); }
+/* two columns: HOLDS / NATURE / ABILITY left, the type badges right */
+.carry .mfacts { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; font-size: 9px; }
+.carry .mleft { display: grid; gap: 6px; min-width: 0; }
+.carry .mtypes { display: flex; gap: 4px; align-items: flex-start; justify-content: flex-end; }
+.carry .mtypes .typebadge { width: 48px; height: 18px; }
+.carry .mfact { display: flex; align-items: center; gap: 6px; }
+.carry .mfact .k { color: var(--dim); min-width: 6.5em; }
+.carry .mfact .itemicon { width: 16px; height: 16px; }
+/* its moves: a little table, one box split 2 x 2 by thin lines; the cells'
+   padding is tight and the table sits a little higher, so it takes about
+   the room the plain two-column list did */
+.carry .mmoves {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0; font-size: 9px;
+  border: 1px solid var(--dim); border-radius: 6px; overflow: hidden; margin-top: -5px;
+}
+.carry .mmove { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 2px 6px; }
+.carry .mmove:nth-child(odd) { border-right: 1px solid var(--dim); }
+.carry .mmove:nth-child(-n+2) { border-bottom: 1px solid var(--dim); }
+.carry .mmove.empty { color: var(--dim); }
+@supports (color: color-mix(in srgb, red 50%, transparent)) {
+  .carry .mmoves, .carry .mmove:nth-child(odd), .carry .mmove:nth-child(-n+2) {
+    border-color: color-mix(in srgb, var(--dim) 55%, transparent);
+  }
+}
+.carry .mmove .typebadge { width: 32px; height: 12px; flex: none; } /* the game's own size */
+.carry .mmove .sub { color: var(--dim); font-size: 8px; }
+/* PC TRANSFERS: the party above the box, and the item bar on ITEMS */
+.partybox { margin-bottom: 10px; }
+.partybox .phead { margin-bottom: 6px; }
+/* the item sheet: the tapped item's bottom sheet, full width and flush
+   with the bottom like the POKéDEX entry, but only as tall as it needs
+   (capped, then it scrolls); no backdrop, so the list above stays usable */
+.xferbar {
+  position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto;
+  max-height: 60vh; max-height: 60dvh; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-bottom: 0; border-radius: 10px 10px 0 0;
+}
+.xferbar.rise { animation: sheet-up .2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .xferbar.rise { animation: none; } }
+/* its head: icon, name, where it is and how many, and X */
+.xferbar .ihead { display: flex; align-items: center; gap: 10px; }
+.xferbar .ititle { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.xferbar .ititle .iname { font-size: 10px; }
+.xferbar .ititle .sub { color: var(--dim); font-size: 8px; margin-left: 8px; }
+.xferbar .iclose {
+  flex: none; width: 36px; height: 36px; font: inherit; font-size: 10px; color: inherit;
+  background: none; border: 0; cursor: pointer;
+}
+/* the game's description of the item */
+.xferbar .idesc { margin: 0; font-size: 8px; line-height: 1.9; color: var(--dim); }
+.xferbar .xrow { display: flex; align-items: center; gap: 8px; }
+.xferbar .givebtn { flex: 1; min-height: 44px; font-size: 11px; }
+/* GIVE TO HOLD: the party, on top of the bar */
+.givelist { display: grid; gap: 4px; padding-bottom: 8px; border-bottom: 2px dashed var(--dim); }
+.giverow {
+  display: flex; align-items: center; gap: 10px; padding: 2px 4px; text-align: left;
+  font: inherit; color: inherit; background: none; border: 0; border-radius: 3px; cursor: pointer;
+}
+.giverow .icon { grid-row: auto; flex: none; animation: none; }
+.giverow:active { background: var(--ink); color: var(--paper); }
+.giverow.off { color: var(--dim); cursor: default; }
+.giverow.off .icon { opacity: .45; }
+/* USE: each POKéMON's HP (and status) on the right; a move's PP */
+.userow .name { flex: 1; min-width: 0; }
+.userow .usehp { font-size: 8px; color: var(--dim); white-space: nowrap; }
+.userow .usehp.out { color: var(--hp-red); }
+.userow:active .usehp { color: inherit; }
+.usehead { display: flex; align-items: center; gap: 6px; }
+.usehead .dim { color: var(--dim); }
+.useback { font: inherit; color: inherit; background: none; border: 0; padding: 0 6px 0 0; font-size: 14px; cursor: pointer; }
+.xferbar[hidden], body:not(.tab-items) .xferbar { display: none; }
+.xferbar .cw { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.xferbar .cn { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xferbar .qty-step { display: flex; align-items: center; gap: 4px; }
+.xferbar .qn { min-width: 2.5ch; text-align: center; font-size: 10px; }
+.xferbar .qbtn { min-width: 30px; padding-left: 6px; padding-right: 6px; }
+/* room under the BAG for the sheet: set to its height (fitBagPadding) */
+/* Gen 2: the DexNav's MORN / DAY / NITE switch */
+/* sits top right in the open DEXNAV; square buttons (icons later, M / D / N now) */
+.dtswitch { display: flex; justify-content: flex-end; gap: 4px; margin: 2px 0 -4px; }
+.dtswitch .chip {
+  font: inherit; font-size: 9px; color: inherit; width: 28px; height: 28px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.dtswitch .chip.on { color: var(--paper); }
+/* pixel icons (index.html ICONS): sharp pixels, the text colour */
+.icn { width: 16px; height: 16px; fill: currentColor; shape-rendering: crispEdges; flex: none; }
+/* a tab shown as an icon (index.html marks it .tab-icon) */
+/* 24px: the icons' own 24x24 grid, one pixel each (sharp at any zoom) */
+.tab .icn { width: 24px; height: 24px; }
+/* an icon inside a line of text (map edges, SPOILERS, sort direction) */
+.icn.inl { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
+.mmsides span .icn.inl:last-child { margin: 0 0 0 4px; }
+/* icons standing in for arrows in buttons */
+.boxbar button .icn, .sheet-head button .icn { width: 16px; height: 16px; display: block; margin: 0 auto; }
+
+/* LIVE: collapsible sections -- the header button folds the body in and out */
+.fold { margin-bottom: 8px; }
+.fold-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; margin: 0;
+  background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.fold-head > :first-child { flex: 1; min-width: 0; }
+.fold-arrow { flex: none; display: flex; color: var(--dim); }
+.fold-body { margin-top: 10px; }
+/* QUICK ACTIONS: its buttons as close to its label as FIELD MOVES' are */
+.bikebox .fold-body { margin-top: 8px; }
+/* the open LOCATION section: HERE / REGION switch, then the map */
+.chips.mmsw { grid-template-columns: 1fr 1fr; max-width: 280px; margin: 0 auto 10px; }
+.mmsw .chip { font: inherit; font-size: 8px; color: inherit; padding: 6px 0; }
+.mmsw .chip.on { color: var(--paper); }
+.mmwrap { display: flex; justify-content: center; }
+.mmcanvas {
+  display: block; width: 100%; max-width: 100%; box-sizing: border-box;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  border: 2px solid var(--ink);
+}
+.mmedge { font-size: 8px; color: var(--dim); text-align: center; margin: 6px 0; }
+.mmsides { display: flex; justify-content: space-between; }
+.mmlegend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; margin-top: 8px; font-size: 7px; color: var(--dim); }
+.mmlegend span { display: inline-flex; align-items: center; gap: 4px; }
+.mmkey { display: inline-block; width: 8px; height: 8px; position: relative; }
+.mmkey.dot::after { content: ""; position: absolute; inset: 3px; background: #fff; }
+.mmkey.mmball { border-radius: 50%; background: var(--hp-red); }
+.mmkey.mmfeebas { border-radius: 50%; box-sizing: border-box; border: 2px solid #f8a020; }
+/* REGION: the current place, blinking like the TOWN MAP cursor */
+.youhere {
+  position: absolute; box-sizing: border-box; border: 2px solid var(--hp-red); background: rgba(224, 48, 32, .35);
+  animation: nest-blink .833s step-end infinite;
+}
+@media (prefers-reduced-motion: reduce) { .youhere { animation: none; } }
+/* Gen 3: the TOWN MAP's player icon */
+.areamap img.youicon { position: absolute; image-rendering: pixelated; image-rendering: crisp-edges; }
+/* Gen 2: one box per PACK pocket */
+.items.pocket + .items.pocket { margin-top: 8px; }
+/* PC TRANSFERS: the item PC is set apart from the BAG / PACK above it */
+.pcdivider { margin: 18px 0 16px; border-top: 2px dashed var(--dim); }
+.items .phead { display: flex; justify-content: space-between; }
+.items .phead span { color: var(--dim); }
+.items .note { margin: 0; }
+/* Gen 2: a held item, like the party menu's icon marker */
+.held {
+  flex: none; width: 9px; height: 9px; align-self: center;
+  border: 2px solid var(--ink); border-radius: 2px; background: var(--hp-yellow);
+}
+/* the game's marker tile: 8x8 pixels shown at 16x16, sharp */
+.held.tile {
+  width: 16px; height: 16px; border: 0; border-radius: 0; background: none no-repeat center / 100% 100%;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+
+/* editing: tap one row, tap another to swap (the BAG's SELECT swap) */
+.note { font-size: 8px; color: var(--note); margin: 0 0 8px; line-height: var(--note-leading, 1.8); }
+.note.warn { color: var(--ink); }
+/* a picked item / POKéMON shows by its inverted colours alone (no cursor
+   in front of it, so the lists need no room for one); the active foe in a
+   trainer's team keeps its cursor */
+.item, .pcrow { position: relative; border-radius: 3px; }
+/* the active foe's cursor: the chevron icon, drawn as a mask so it takes
+   the text colour */
+:root { --cursor-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 13v-2h-2v2h2Zm-2-2V9h-2v2h2Zm0 4v-2h-2v2h2Zm-2-6V7h-2v2h2Zm0 8v-2h-2v2h2ZM10 7V5H8v2h2Zm0 12v-2H8v2h2Z'/%3E%3C/svg%3E"); }
+.trow::before {
+  content: ""; position: absolute; top: 50%; width: 12px; height: 12px; margin-top: -6px;
+  visibility: hidden; background: currentColor;
+  -webkit-mask: var(--cursor-icon) center / contain no-repeat;
+  mask: var(--cursor-icon) center / contain no-repeat;
+}
+.pick { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.sel { background: var(--ink); color: var(--paper); box-shadow: 0 0 0 3px var(--ink); }
+/* a picked party card keeps its colors (the HP bar); the gap in its double
+   frame is filled, so the frame reads as one strong black line */
+.mon.sel {
+  background: var(--paper); color: var(--ink);
+  box-shadow: inset 0 0 0 4px var(--ink);
+}
+.sel .sub { color: var(--paper); }
+
+/* PC: box switcher, box chips, the box's mons */
+.boxbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.boxbar button {
+  background: none; border: 0; font-size: 14px; padding: 6px 12px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.boxbar .bt { text-align: center; font-size: 11px; }
+.boxbar .bs { display: block; font-size: 8px; color: var(--dim); margin-top: 4px; }
+.chips { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 8px; }
+.chip {
+  position: relative; border: 2px solid var(--ink); border-radius: var(--radius); background: var(--paper);
+  font-size: 8px; padding: 7px 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.chip.on { background: var(--ink); color: var(--paper); }
+.chip.cur::after {
+  content: ""; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px;
+  background: var(--hp-green);
+}
+.boxlist { display: grid; gap: 6px; }
+.pcrow { display: flex; align-items: center; gap: 8px; min-height: 36px; padding-right: 4px; }
+.pcrow .icon { grid-row: auto; flex: none; animation: none; }
+/* only as wide as the name: the dotted leader takes the rest */
+.pcrow .name { flex: 0 1 auto; min-width: 0; }
+.pcrow .lv { margin-left: 0; }
+.slot {
+  justify-content: center; border: 2px dashed var(--ink); border-radius: var(--radius); color: var(--dim);
+}
+
+/* Gen 1 message box for edit results */
+/* the phone's notices ("Face the water"): just below the header, over any
+   sheet and clear of the thumbs; top set by toast() from the header's
+   height. Styled like the HANDS-OFF notifications (--notice-*, skins.css) */
+#toast {
+  position: fixed; left: 16px; right: 16px; top: var(--toast-top, 64px);
+  max-width: 528px; margin: 0 auto; display: none; z-index: 60; font-size: 9px; line-height: 1.8;
+}
+#toast.show { display: block; animation: toast-in .2s ease-out; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+#party { display: grid; gap: 8px; }
+.mon { cursor: pointer; -webkit-tap-highlight-color: transparent; padding: 8px 10px; }
+.mon.fainted { color: var(--dim); }
+
+/* compact row: the in-game party menu line */
+.row { display: grid; grid-template-columns: 36px 1fr; column-gap: 8px; align-items: center; }
+.icon {
+  width: 32px; height: 32px; grid-row: span 2;
+  background-size: 32px 64px; background-repeat: no-repeat;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  animation: flip var(--flip, 1s) infinite;
+}
+.fainted .icon, .icon.still { animation: none; }
+.fainted .icon { opacity: .45; }
+@keyframes flip {
+  0% { background-position: 0 0; animation-timing-function: steps(1, end); }
+  50% { background-position: 0 -32px; animation-timing-function: steps(1, end); }
+  100% { background-position: 0 0; }
+}
+.line1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.name { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lv { margin-left: auto; white-space: nowrap; }
+.st { white-space: nowrap; }
+
+.hp { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.hp-label { font-size: 8px; }
+.bar {
+  flex: 1; height: 8px; border: 2px solid var(--ink); border-left-width: 3px;
+  border-radius: 0 4px 4px 0; padding: 1px; min-width: 60px;
+}
+.fill { height: 100%; transition: width .5s steps(24), background-color .3s; }
+.hp-num { white-space: nowrap; font-size: 9px; min-width: 7.5em; text-align: right; }
+
+/* expanded: the summary screens */
+.detail { display: none; margin-top: 10px; border-top: 2px dashed var(--ink); padding-top: 10px; }
+.open .detail { display: block; }
+.top { display: flex; gap: 20px; align-items: flex-start; }
+.front {
+  width: 112px; height: 112px; flex: none; image-rendering: pixelated; image-rendering: crisp-edges;
+}
+/* Crystal: an animated picture (a canvas) replays on a tap */
+canvas.front { cursor: pointer; }
+/* POKéMON and trainer pictures: the game draws their white as see-through,
+   so they sit on their own background, whatever the skin's colours */
+.front, .tpic, .foe img:not(.sticon), .pback { background: var(--sprite-bg); }
+/* Gen 3 pictures are see-through (the GBA's colour 0): they sit on the box
+   itself (battles, party DETAILS, POKéDEX, PC), unless a skin's sprite
+   palette paints them */
+html.gen3:not(.sprite-pal) .front, html.gen3:not(.sprite-pal) .foe img:not(.sticon),
+html.gen3:not(.sprite-pal) .tpic, html.gen3:not(.sprite-pal) .pback { background: none; }
+/* a skin's --sprite-palette: the pictures (background included) go through
+   the page's palette filter (see updateSpritePalette in index.html) */
+html.sprite-pal .front, html.sprite-pal .tpic, html.sprite-pal .foe img:not(.sticon),
+html.sprite-pal .pback {
+  filter: url(#sprite-palette);
+}
+.facts { flex: 1; min-width: 0; display: grid; gap: 4px; font-size: 9px; }
+.facts .k { color: var(--dim); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.stats { display: grid; gap: 6px; font-size: 9px; align-content: start; }
+.stats div { display: flex; justify-content: space-between; }
+/* SHOW HIDDEN VALUES: a STAT | DV | STAT EXP table, then one line each */
+.hiddenv { margin-top: 10px; font-size: 9px; }
+.htable { display: grid; grid-template-columns: 1fr auto auto; gap: 6px 16px; margin-top: 8px; }
+.htable .num { text-align: right; }
+/* Gen 3: a perfect IV */
+.htable .num.max { color: var(--hp-green); }
+
+/* Gen 3: the stat a nature raises / lowers (red / blue, like FireRed's
+   summary screen), the ability's text and the TRAINER MEMO */
+.nat-up { color: var(--nature-up, #e03020); }
+.nat-down { color: var(--nature-down, #3868c8); }
+/* Gen 3 card: the ball below the picture, the type badges side by side,
+   the ABILITY box and the EXP / OT / MET box */
+.pic { flex: none; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.caughtball { width: 32px; height: 32px; image-rendering: pixelated; image-rendering: crisp-edges; }
+.badges { display: flex; gap: 6px; }
+.typebadge { width: 64px; height: 24px; image-rendering: pixelated; image-rendering: crisp-edges; }
+.abilitybox, .trainerbox { margin-top: 10px; }
+.abilitybox .aname { margin-top: 6px; }
+.abilitybox .adesc { color: var(--dim); font-size: 8px; line-height: 1.6; margin-top: 4px; }
+.trainerbox .memo { margin-top: 8px; font-size: 8px; line-height: 1.8; }
+.trainerbox .memo .k { color: var(--dim); }
+.abilities { margin-top: 10px; }
+.abilities .ability { margin-top: 8px; }
+.abilities .adesc { color: var(--dim); font-size: 8px; line-height: 1.6; margin-top: 2px; }
+/* Gen 3 pictures are 64x64: shown at a whole 2x */
+html.gen3 .front { width: 128px; height: 128px; }
+/* Gen 3's menu icons, drawn larger without moving anything: a transform
+   grows the picture but not the space it takes. FireRed's 32x32 icons
+   leave a wide see-through margin around the POKéMON, so the extra size
+   mostly covers empty pixels; --icon-lift nudges it up (the POKéMON sit
+   low in their frame). A property of the art, so in every skin. */
+html.gen3 { --icon-scale: 1.5; --icon-lift: -4px; }
+html.gen3 .icon { transform: translateY(var(--icon-lift)) scale(var(--icon-scale)); }
+.hline { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.hline .k { flex: none; }
+.hline .lead { flex: 1; min-width: 12px; align-self: center; margin-top: .5em; border-bottom: 2px dotted var(--dim); opacity: .5; }
+.moves { display: grid; gap: 8px; font-size: 9px; }
+.move .mn { font-size: 9px; } /* the stats' size, beside them */
+/* type and PP, a size down; when a long type (ELECTRIC) leaves no room, PP
+   moves whole to its own line, still on the right, instead of breaking */
+.move .pp {
+  display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 4px;
+  font-size: 8px; color: var(--dim); margin-top: 3px;
+}
+/* pre: the padding spaces in " 8/ 8" must not collapse */
+.move .pp b { margin-left: auto; white-space: pre; }
+.move .pp.low b { color: var(--hp-yellow); }
+.move .pp.out b { color: var(--hp-red); }
+.move b { font-weight: normal; color: var(--ink); }
+/* Gen 3: the move's type badge (smaller than the card's, the column is narrow) */
+.move .mtype { display: inline-flex; align-items: center; gap: 4px; }
+.move .mtype .typebadge { width: 48px; height: 18px; }
+/* Emerald's type badges are 32x14 (FireRed's 32x12): the same widths, a
+   little taller, so they keep their shape */
+html.rse .typebadge { height: 28px; }
+html.rse .carry .mtypes .typebadge, html.rse .move .mtype .typebadge { height: 21px; }
+html.rse .carry .mmove .typebadge { height: 14px; }
+@media (max-width: 380px) {
+  .grid2 { grid-template-columns: 1fr; }
+  /* five tabs on a 360px phone */
+  .tab { font-size: 8px; }
+  .fbtn { font-size: 8px; }
+}
+
+/* LIVE: location, battle, DexNav */
+.loc { margin-bottom: 8px; }
+.loc-k, .sec-k { font-size: 8px; color: var(--dim); }
+.loc-name { font-size: 13px; margin-top: 6px; }
+/* an icon heading: the icon (in the labels' dim colour) on the left, the
+   value right-aligned beside it -- LOCATION, GEAR's CLOCK */
+.ihead { display: flex; align-items: center; gap: 12px; }
+.ihead .icn { width: 24px; height: 24px; color: var(--dim); }
+.ihead .loc-name { flex: 1; min-width: 0; margin: 0; text-align: right; }
+.battle { margin-bottom: 8px; }
+.bhead { display: flex; gap: 10px; align-items: center; }
+.tpic, .foe img:not(.sticon) {
+  width: 84px; height: 84px; flex: none; image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.btitle { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.bn { font-size: 11px; }
+.balls { display: flex; gap: 2px; }
+/* the game's 8x8 balls at 2x (the lineup and the team list alike) */
+.ball {
+  width: 16px; height: 16px; background-size: 64px 16px; background-repeat: no-repeat;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+/* a skin's sprite palette: the ball sheet is a picture like the others */
+html.sprite-pal .ball:not(.css) { filter: url(#sprite-palette); }
+.ball.css { border: 2px solid var(--ink); border-radius: 50%; transform: scale(.75); }
+.ball.css.f0 { background: linear-gradient(var(--hp-red) 0 42%, var(--ink) 42% 58%, var(--paper) 58%); }
+.ball.css.f1 { background: var(--ink); }
+.ball.css.f2 { background: var(--dim); border-color: var(--dim); }
+.ball.css.f3 { border-style: dashed; border-color: var(--dim); }
+/* the weather, on top of a battle: a band in its colour */
+.bweather {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  padding: 4px 8px; border-radius: var(--radius); font-size: 9px; color: #ffffff;
+}
+.bweather .wturns { font-size: 8px; opacity: .9; }
+.bweather.w-rain { background: #3868c8; }
+.bweather.w-sun { background: #e07018; }
+.bweather.w-sand { background: #a08038; }
+.bweather.w-hail { background: #60a8c8; }
+.foe { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+.foe .fi { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+/* raised / lowered stats under the HP bar: green up, red down. Up to seven
+   at once (ANCIENTPOWER raises five): tidy columns, three at most, fewer
+   where the card is narrow */
+.stages {
+  display: grid; gap: 4px; font-size: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(13ch, 1fr));
+  max-width: calc(39ch + 8px);
+}
+.stages:empty { display: none; }
+.stg { padding: 1px 4px; border-radius: var(--radius); color: #ffffff; text-align: center; white-space: nowrap; }
+.stg.up { background: var(--hp-green, #38b848); }
+.stg.down { background: var(--hp-red, #e03020); }
+/* multi-turn effects: a POKéMON's grey; its side's (REFLECT ...) outlined */
+.effects { display: flex; flex-wrap: wrap; gap: 4px; font-size: 8px; }
+.eff { padding: 1px 4px; border-radius: var(--radius); background: var(--dim); color: var(--paper); white-space: nowrap; }
+.effects.side .eff { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); padding: 2px 5px; }
+.effects.side { margin-bottom: 6px; }
+.foe-side { margin-top: 8px; }
+.effects.field { margin-top: 8px; }
+/* the player's side at the bottom of a battle */
+.mine { margin-top: 10px; border-top: 2px dashed var(--ink); padding-top: 10px; }
+.mine-party { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }
+.mine-party .icon { position: relative; opacity: .45; }
+.mine-party .icon.on { opacity: 1; }
+.mine-party .icon.out { opacity: .2; }
+.mine .foe { margin-top: 6px; }
+/* Gen 3's icons are drawn 1.5x (a transform, no space taken): room for the
+   overflow, so they don't touch each other in the party row */
+html.gen3 .mine-party { gap: 22px; padding: 4px 0 2px; }
+
+.team { display: grid; gap: 6px; margin-top: 10px; border-top: 2px dashed var(--ink); padding-top: 10px; }
+.trow { display: flex; align-items: center; gap: 8px; min-height: 32px; position: relative; }
+.trow::before { left: -14px; }
+.trow.act::before { visibility: visible; }
+.trow .icon { grid-row: auto; flex: none; animation: none; }
+.trow .ball { width: 16px; height: 16px; background-size: 64px 16px; flex: none; }
+.trow .name { flex: 1; min-width: 0; }
+.trow.pick { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.trow .chev { width: 1em; text-align: right; }
+.tmoves { display: grid; gap: 6px; padding: 4px 0 8px 24px; font-size: 9px; }
+.tmoves .dim { color: var(--dim); font-size: 8px; }
+.tmove { display: flex; justify-content: space-between; gap: 8px; }
+.battle-body > .tmoves { margin-top: 10px; padding-left: 0; border-top: 2px dashed var(--ink); padding-top: 10px; }
+.trow.hidden { color: var(--dim); }
+.team { padding-left: 16px; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; margin: 12px 0 6px; }
+.sec-head:first-of-type { margin-top: 8px; }
+.sec-head .dim, .dexrow .dim { color: var(--dim); font-size: 8px; }
+.dexrow { display: flex; align-items: center; gap: 8px; min-height: 34px; }
+/* Emerald: the POKéNAV tab (MATCH CALL rows are GEAR's contacts, not
+   tappable here) and the BERRIES list */
+.mcrow { position: relative; padding: 8px 6px; }
+.mcrow + .mcrow::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: var(--dim); opacity: .35; pointer-events: none;
+}
+.mclass { font-size: 7px; color: var(--dim); margin-bottom: 1px; }
+.mcline { display: flex; align-items: center; gap: 8px; font-size: 9px; }
+.mcline .name { flex: 1; min-width: 0; }
+.mcright { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.mcwhere { font-size: 8px; color: var(--dim); text-align: right; }
+/* a MATCH CALL row: the role over the name, one block centred between the
+   dividers (tight lines: the pixel font's own leading sits under the
+   letters and would push the pair up), the place centred beside it */
+.mccall { display: flex; align-items: center; gap: 8px; padding: 9px 6px; }
+.mcwho { flex: 1; min-width: 0; }
+.mcwho .mclass, .mcwho .name { line-height: 1; }
+.mcwho .name { font-size: 9px; }
+.mccall .mclass { margin-bottom: 3px; }
+.berry .itemicon { width: 24px; height: 24px; }
+.berry .bstate { display: flex; align-items: center; gap: 6px; margin-top: 2px; padding-left: 32px; font-size: 7px; color: var(--dim); }
+.berry.ripe .bstate { color: var(--hp-green); }
+/* the growth: five dots joined by a line, filled up to the stage reached;
+   each line runs 1px into both dots, so no sliver shows at the round edge */
+.bgrow { display: inline-flex; align-items: center; flex: none; }
+.bgrow i { width: 7px; height: 7px; border-radius: 50%; box-sizing: border-box; border: 2px solid var(--dim); }
+.bgrow i + i { margin-left: 12px; position: relative; }
+.bgrow i + i::before {
+  content: ""; position: absolute; right: calc(100% - 1px); top: 50%; width: 16px; height: 2px; margin-top: -1px;
+  background: var(--dim);
+}
+.bgrow i.on { background: currentColor; border-color: currentColor; }
+.bgrow i.on + i.on::before { background: currentColor; }
+.berry .bstate { color: var(--box-ink); }
+.berry .bstate > span:not(.bgrow):not(.gbadge) { color: var(--dim); }
+.berry.ripe .bstate > span:not(.bgrow):not(.gbadge) { color: var(--hp-green); }
+/* Emerald: the CONTEST view */
+.contestv .sec-head { display: flex; justify-content: space-between; align-items: center; }
+.applause { display: inline-flex; gap: 3px; }
+.applause i { width: 8px; height: 8px; border: 2px solid var(--ink); border-radius: 50%; }
+.applause i.on { background: var(--hp-red); border-color: var(--hp-red); }
+.cmon.me .name { text-decoration: underline; }
+.ctrainer { display: block; font-size: 7px; color: var(--dim); }
+.ctag { font-size: 7px; color: var(--hp-red); margin-left: 6px; }
+.csub { font-size: 7px; color: var(--dim); line-height: 1.6; padding: 0 0 6px 42px; }
+.cmove { margin-top: 6px; }
+.cmtop { display: flex; align-items: center; gap: 6px; }
+.cmove .csub { padding-left: 0; }
+/* Emerald: CONDITION bars behind the category badges, the RIBBONS row,
+   the POKéBLOCK CASE */
+.condbox, .ribbonbox { margin-top: 10px; }
+.cond { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.cond .typebadge { width: 48px; height: 21px; flex: none; }
+.cond .k { width: 48px; flex: none; font-size: 8px; color: var(--dim); }
+.cbar { flex: 1; height: 8px; border: 2px solid var(--ink); border-radius: 2px; overflow: hidden; }
+.cbar i { display: block; height: 100%; background: var(--ink); }
+.cond-cool .cbar i { background: #e05838; }
+.cond-beauty .cbar i { background: #3878e0; }
+.cond-cute .cbar i { background: #e868b0; }
+.cond-smart .cbar i { background: #48a848; }
+.cond-tough .cbar i { background: #e0b020; }
+.cond-sheen .cbar i { background: var(--dim); }
+.cnum { width: 28px; flex: none; text-align: right; font-size: 8px; }
+.ribbons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.ribbon { padding: 2px; border: 2px solid transparent; border-radius: 4px; background: none; cursor: pointer; }
+.ribbon.on { border-color: var(--ink); }
+.ribbon img, .mribbons img { display: block; width: 32px; height: 32px; image-rendering: pixelated; image-rendering: crisp-edges; }
+.mribbons img { width: 24px; height: 24px; }
+.rdesc { font-size: 8px; line-height: 1.6; color: var(--dim); margin-top: 6px; min-height: 0; }
+.rdesc:empty { display: none; }
+.pokeblocks { margin-top: 8px; }
+.pblock { align-items: center; }
+.pbdot { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-right: 6px; border: 1px solid var(--ink); background: var(--dim); }
+.pb-1 .pbdot { background: #e04040; } .pb-2 .pbdot { background: #4070e0; } .pb-3 .pbdot { background: #f080c0; }
+.pb-4 .pbdot { background: #40b040; } .pb-5 .pbdot { background: #f0d030; } .pb-6 .pbdot { background: #9050c0; }
+.pb-7 .pbdot { background: #4040a0; } .pb-8 .pbdot { background: #906030; } .pb-9 .pbdot { background: #80c8f0; }
+.pb-10 .pbdot { background: #909030; } .pb-11 .pbdot { background: #a0a0a0; } .pb-12 .pbdot { background: #303030; }
+.pb-13 .pbdot { background: #ffffff; } .pb-14 .pbdot { background: #e0b020; }
+.pbflavors { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 0 0 6px 16px; font-size: 7px; color: var(--dim); }
+/* SAFARI ZONE battle: catch / runs per choice, three columns */
+.safodds { margin-top: 10px; }
+.saftable { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 12px; align-items: baseline; }
+.saftable > span:not(.sact) { text-align: right; }
+.saftable .dim { color: var(--dim); font-size: 8px; }
+/* SAFARI ZONE (Gen 1 / 3): balls and steps left, one line under LOCATION */
+.safaribox { margin-bottom: 8px; }
+.safaribar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
+.safaribar .sball, .safaribar .ssteps { display: inline-flex; align-items: center; gap: 6px; }
+/* DAY-CARE: the waiting egg (Gen 2 / 3), the word on how the pair get along */
+.sec-head .egg { color: var(--hp-red); font-size: 8px; }
+.carenote { margin: 4px 0 8px; }
+.dexrow .icon { grid-row: auto; flex: none; animation: none; }
+/* only as wide as the name: the dotted leader takes the rest */
+.dexrow .name { flex: 0 1 auto; min-width: 0; }
+.dexrow .pct { min-width: 4.5em; text-align: right; }
+.dexrow.unknown .name { color: var(--dim); }
+/* DEXNAV's rows: the name takes the room (no dotted leader), a divider
+   between rows as in the other lists; a touch tighter, so long lists
+   (the SAFARI ZONE's) fit the HANDS-OFF column at a good size */
+.navrow { min-height: 30px; }
+.navrow .name { flex: 1 1 auto; }
+.navrow + .navrow { border-top: 2px solid rgba(128, 128, 128, .2); }
+.qmark {
+  display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--dim);
+  border: 2px dashed var(--dim); border-radius: var(--radius); width: 28px !important; height: 28px !important; margin: 2px;
+}
+/* POKéDEX: SEEN / OWN, then six entries per row */
+.dexbar { display: flex; gap: 6px; margin-bottom: 10px; }
+.dexcount { flex: 1; display: flex; justify-content: space-around; text-align: center; }
+/* the sort / filter button: a square box beside the counts */
+.dexsort {
+  position: relative; flex: none; width: 64px; padding: 0; font: inherit; color: var(--ink);
+  background: var(--paper); cursor: pointer; -webkit-tap-highlight-color: transparent;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+}
+.dexsort svg { width: 22px; height: 22px; }
+.dexsort .dsl { font-size: 6px; }
+.dexsort.open { background: var(--ink); color: var(--paper); box-shadow: none; }
+.dexsort.changed::after {
+  content: ""; position: absolute; top: 7px; right: 7px; width: 5px; height: 5px; background: var(--hp-green);
+}
+.dexpanel { margin-bottom: 10px; }
+.dexpanel .sec-k { margin: 0 0 6px; }
+.dexpanel .chips { grid-template-columns: repeat(4, 1fr); margin-bottom: 12px; }
+.dexpanel .chips.types { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+.dexpanel .chip { font: inherit; font-size: 7px; color: inherit; padding: 8px 2px; }
+.dexpanel .chip.on { color: var(--paper); }
+.dexpanel .chip:disabled { border-color: var(--dim); color: var(--dim); cursor: default; }
+.dexpanel .row2 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dexpanel .note { margin: 0; }
+.dexpanel .mode:disabled { color: var(--dim); border-color: var(--dim); cursor: default; }
+.dcell[hidden], .dgroup[hidden] { display: none; }
+.dgroup { grid-column: 1 / -1; font-size: 8px; margin: 8px 0 2px; display: flex; gap: 8px; align-items: center; }
+.dgroup:first-child { margin-top: 0; }
+.dgroup::after { content: ""; flex: 1; border-top: 2px dashed var(--ink); }
+.dexcount b { display: block; font-size: 16px; font-weight: normal; margin-top: 6px; color: var(--ink); }
+.sex { font-family: sans-serif; font-weight: bold; font-size: 1.4em; line-height: 0; }
+/* ♂ / ♀ from the game's font: one letter cell (1em), its empty bottom row
+   below the baseline like the pixel font's letters */
+.sexg { display: inline-block; width: 1em; height: 1em; vertical-align: -.125em; margin-left: .1em; fill: currentColor; shape-rendering: crispEdges; }
+/* a light tint: blue for ♂, red-magenta for ♀ (tokens in the themes) */
+/* Gen 3's glyphs are taller than wide (FireRed's 5 x 10): a line high,
+   their own width (set inline), sitting on the text's baseline */
+.sexg.tall { height: 1.1em; vertical-align: -.2em; }
+.sexg.male { color: var(--male-ink); }
+.sexg.female { color: var(--female-ink); }
+.sexg.shiny { color: var(--shiny-ink); }
+.dexgrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+/* big dexes (mods add hundreds of species): cells off screen skip layout
+   until scrolled near, so redrawing the grid stays fast */
+.dcell {
+  content-visibility: auto; contain-intrinsic-size: auto 68px;
+  position: relative; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  /* the bottom padding keeps the name's line free (it sits there on its own) */
+  padding: 3px 1px 14px; font: inherit; color: var(--ink); background: var(--paper);
+  border: 2px solid var(--ink); border-radius: var(--radius); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.dcell .dnum { align-self: flex-start; padding-left: 2px; font-size: 6px; color: var(--dim); }
+.dcell .icon { grid-row: auto; animation: none; }
+.dcell .dq { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+/* the whole name on one line: the font shrinks for long names (--n = length,
+   --cw = a cell's inner width, measured once for the whole grid; --glyph-w
+   = a letter's width in em for the font in use). Pinned a fixed distance
+   above the cell's bottom edge, so every name sits on the same line
+   whatever size it shrank to. */
+.dcell .dname {
+  position: absolute; left: 1px; right: 1px; bottom: 2px; line-height: 1;
+  text-align: center; white-space: nowrap; overflow: hidden;
+  font-size: 6px;
+  font-size: min(var(--dname-max, 7px), calc((var(--cw, 45px) - 2px) / (var(--n, 10) * var(--glyph-w, 1))));
+}
+/* trying out Tiny5 for the names, a narrow pixel font (every skin but
+   MODERN, which has its own) */
+html:not(.skin-modern) .dcell .dname {
+  font-family: "Tiny5", var(--font);
+  --glyph-w: .66; --dname-max: 9px;
+}
+/* ...and for the other small print: the dex number in each cell, and the
+   line under a QUICK ACTIONS / FIELD MOVES button ("Face a tree.").
+   Tiny5 draws smaller than Press Start 2P at one size, hence the bump. */
+html:not(.skin-modern) .dcell .dnum { font-family: "Tiny5", var(--font); font-size: 8px; line-height: 1; }
+html:not(.skin-modern) .fsub { font-family: "Tiny5", var(--font); font-size: 9px; line-height: 1.2; }
+.dcell .own { position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-width: 1px; }
+.dcell.unseen { border-color: var(--dim); color: var(--dim); }
+.dcell.hint .icon { opacity: .5; } /* SPOILERS: not seen yet */
+.dcell.hint .dname { color: var(--dim); }
+
+.dcell:not([data-species]) { cursor: default; }
+
+/* POKéDEX entry: bottom sheet */
+/* while the sheet is open a sideways swipe steps through entries, so the
+   browser's own swipe-to-go-back must not fire on top of it */
+html.sheet-open, html.sheet-open body { overscroll-behavior-x: none; }
+.sheet-wrap { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+.sheet-wrap[hidden] { display: none; }
+.sheet-back { position: absolute; inset: 0; background: var(--backdrop); }
+/* one fixed height for every entry, so ◀ ▶ never move; long texts scroll inside */
+.sheet {
+  position: relative; width: 100%; max-width: 560px;
+  height: min(500px, 85vh); height: min(500px, 85dvh);
+  display: flex; flex-direction: column; overflow: hidden; background: var(--paper);
+  border-bottom: 0; border-radius: 10px 10px 0 0;
+  padding: 6px 16px 0;
+  animation: sheet-up .2s ease-out;
+  touch-action: pan-y; /* horizontal swipes step through entries */
+}
+#sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 12px; }
+/* DATA: the cry button (40px, 10px above the tabs) floats over the page's
+   end, so the page can scroll its last line clear of it */
+#sheet-body.has-cry { padding-bottom: 62px; }
+/* DATA / AREA, pinned to the bottom of the sheet */
+.sheet-tabs {
+  flex: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  border-top: 2px solid var(--ink); margin: 0 -16px; padding: 8px 16px calc(10px + env(safe-area-inset-bottom));
+}
+.sheet-tabs .chip { font: inherit; font-size: 9px; color: inherit; padding: 10px 0; }
+.sheet-tabs .chip.on { color: var(--paper); }
+
+/* MOVES: level-up moves, laid out like the BAG's TM / HM rows */
+.dexmoves { padding-top: 4px; }
+/* EVO: the family, species rows with each step's condition between them */
+.evo { display: grid; gap: 6px; padding-top: 4px; }
+.evo-row { display: flex; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 3px; }
+.evo-row.cur { background: var(--ink); color: var(--paper); }
+.evo-icon { width: 32px; height: 32px; flex: none; }
+.evo-row .icon { grid-row: auto; animation: none; }
+.evo-q { display: flex; align-items: center; justify-content: center; color: var(--dim); }
+.evo-how { color: var(--dim); font-size: 8px; padding-left: 18px; }
+.evo-how .icn.inl { vertical-align: -3px; }
+.evo-breed { display: grid; gap: 6px; margin-top: 12px; }
+.evo-breed .hline { margin-top: 2px; }
+/* DATA: SHOW HIDDEN VALUES, below the description */
+.entry-hidden { margin-top: 12px; border-top: 2px dashed var(--ink); padding-top: 12px; font-size: 9px; }
+.dexmoves .fhead { margin-top: 14px; }
+/* the level column: wide enough for "Lv.XX" (5 digits' worth), so the move
+   names after it start at one tab stop, egg moves included */
+.dexmoves .lvl { display: inline-block; min-width: 5ch; }
+.evo-branch { display: grid; gap: 6px; margin-left: 18px; padding-left: 10px; border-left: 2px dotted var(--dim); }
+
+/* DATA: the cry button, fixed at the bottom right of the entry */
+.crybtn {
+  position: absolute; right: 16px; width: 40px; height: 40px; aspect-ratio: 1; flex: none; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  font: inherit; font-size: 8px; color: var(--ink); background: var(--paper);
+  border: 2px solid var(--ink); border-radius: var(--radius); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.crybtn .icn { width: 24px; height: 24px; display: block; }
+.crybtn[hidden] { display: none; }
+.crybtn:active { background: var(--ink); color: var(--paper); }
+
+/* AREA: the TOWN MAP with nests, then where and how */
+.area-title { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin: 0 0 8px; }
+.area-title .at { font-size: 10px; }
+.areamap { position: relative; width: 100%; max-width: 280px; margin: 0 auto; aspect-ratio: 160 / 144; }
+.areamap img { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+.nestmark {
+  position: absolute; width: 5%; height: 5.5556%; padding: 0; border: 0; background: none;
+  background-size: 100% 100%; image-rendering: pixelated; image-rendering: crisp-edges;
+  animation: nest-blink .833s step-end infinite;
+}
+/* without the nest art: the game's own fallback, a dark 4x4 square */
+.nestmark.plain::after { content: ""; position: absolute; inset: 25%; background: var(--ink); }
+@keyframes nest-blink { 50% { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .nestmark { animation: none; } }
+.area-unknown {
+  position: absolute; left: 5%; right: 10%; top: 38%; padding: 8px 0; text-align: center;
+  background: var(--paper); font-size: 9px;
+}
+.arealist { display: grid; gap: 2px; margin-top: 8px; }
+/* Gen 2: JOHTO / KANTO above the map */
+.regionsw { grid-template-columns: 1fr 1fr; margin: 0 auto 8px; max-width: 280px; }
+.regionsw .chip { font: inherit; font-size: 8px; color: inherit; padding: 6px 0; }
+.regionsw .chip.on { color: var(--paper); }
+.regionsw .chip:disabled { border-color: var(--dim); color: var(--dim); cursor: default; }
+.arow {
+  display: grid; grid-template-columns: 1fr auto; column-gap: 8px; row-gap: 3px; align-items: baseline;
+  padding: 6px 4px; border-radius: 3px;
+}
+.arow .an { font-size: 9px; }
+.arow .ak, .arow .al { font-size: 8px; color: var(--dim); }
+/* Gen 2: the times of day a place applies at, as the DEXNAV's icons */
+.arow .awhen { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: -3px; }
+.arow .awhen .icn { width: 12px; height: 12px; }
+.arow .ac { font-size: 9px; text-align: right; }
+.arow.sel { background: var(--ink); color: var(--paper); }
+.arow.sel .ak, .arow.sel .al { color: var(--paper); }
+#sheet-body.from-right { animation: entry-in-r .16s ease-out; }
+#sheet-body.from-left { animation: entry-in-l .16s ease-out; }
+@keyframes entry-in-r { from { transform: translateX(24px); opacity: .3; } }
+@keyframes entry-in-l { from { transform: translateX(-24px); opacity: .3; } }
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .sheet, #sheet-body.from-right, #sheet-body.from-left { animation: none; } }
+.sheet-head { flex: none; display: flex; align-items: center; gap: 2px; margin: 0 -10px 6px; }
+.sheet-head button {
+  min-width: 44px; min-height: 44px; background: none; border: 0; font-size: 12px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.sheet-head button:disabled { color: var(--dim); cursor: default; }
+.sheet-head .snum { font-size: 10px; min-width: 6em; text-align: center; }
+.sheet-head .grow { flex: 1; }
+/* the species' name between ◀ No. ▶ and X, faint like a TM's move */
+.sheet-head .sname {
+  min-width: 0; text-align: center; font-size: 8px; color: var(--dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.entry-top { display: flex; gap: 26px; align-items: center; position: relative; }
+/* Gen 2: the footprint, pinned bottom right above the divider */
+.entry-top .footprint {
+  position: absolute; right: 0; bottom: 0; width: 32px; height: 32px;
+  fill: currentColor; shape-rendering: crispEdges;
+}
+.entry-top .front, .entry-top .fq {
+  width: 112px; height: 112px; flex: none; image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.entry-top .fq { display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--dim); }
+.entry-facts { flex: 1; min-width: 0; display: grid; gap: 8px; font-size: 9px; }
+.entry-name { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.entry-facts .k { color: var(--dim); margin-right: 6px; }
+.entry-facts .dim { color: var(--dim); }
+.entry-desc { margin-top: 12px; border-top: 2px dashed var(--ink); padding-top: 12px; font-size: 10px; }
+.entry-desc p { margin: 0 0 8px; }
+.entry-desc .note { margin: 0; }
+
+/* caught mark: a tiny Poké Ball */
+.own {
+  width: 10px; height: 10px; flex: none; border: 2px solid var(--ink); border-radius: 50%;
+  background: linear-gradient(var(--hp-red) 0 42%, var(--ink) 42% 58%, var(--paper) 58%);
+}
+
+/* GEAR (Gen 2): the POKéGEAR's clock, phone and radio */
+.gclock { margin-bottom: 8px; }
+.gcontact, .gstation {
+  display: block; width: 100%; padding: 8px 0; margin: 0; font: inherit; font-size: 9px; color: inherit;
+  text-align: left; background: none; border: 0; border-radius: 3px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.gcontact + .gcontact, .gcall + .gcontact { border-top: 1px dashed var(--dim); }
+.gcontact.on { background: var(--ink); color: var(--paper); box-shadow: 0 0 0 3px var(--ink); }
+.gcontact.on .dim, .gcontact.on .gsub { color: var(--paper); }
+.gline, .gstation { display: flex; align-items: center; gap: 8px; }
+.gline .name, .gstation .name { flex: 0 1 auto; min-width: 0; }
+.gline .dim { font-size: 8px; color: var(--dim); white-space: nowrap; }
+.gcontact .lead, .gstation .lead {
+  flex: 1; min-width: 12px; align-self: center; margin-top: 0.5em;
+  border-bottom: 2px dotted var(--dim); opacity: .5;
+}
+.gcontact.on .lead { border-color: var(--paper); }
+.gsub { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 7px; color: var(--dim); }
+.gbadge { flex: none; padding: 2px 4px; background: var(--ink); color: var(--paper); border-radius: 2px; }
+.gcontact.on .gbadge { background: var(--paper); color: var(--ink); }
+.fbtn.gcall { width: 100%; margin: 8px 0 10px; }
+.gstation:disabled { color: var(--dim); cursor: default; }
+.gstation .gfreq { flex: none; }
+.gstation.on { background: var(--ink); color: var(--paper); box-shadow: 0 0 0 3px var(--ink); }
+.gstation.on .lead { border-color: var(--paper); }
+.gstation + .gstation { margin-top: 2px; }
+.gradio .note.gfx { margin: 10px 0 0; line-height: 1.8; }
+.fbtn.goff { width: 100%; margin-top: 10px; }
+/* a call: the game's text box over the page */
+html.call-open, html.call-open body { overscroll-behavior: none; }
+.callwrap { align-items: center; padding: 16px; }
+.callbox {
+  position: relative; width: 100%; max-width: 528px; background: var(--paper);
+  display: flex; flex-direction: column; gap: 10px; max-height: 80vh; max-height: 80dvh;
+}
+.call-head { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+.call-k { display: flex; }
+.call-text { min-height: 6em; overflow-y: auto; overscroll-behavior: contain; font-size: 9px; line-height: 2; }
+.call-text p { margin: 0 0 10px; color: var(--dim); }
+.call-text p.cur { color: var(--ink); }
+.call-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; }
+
+/* ======================================================================
+   Button groups a skin can style on their own (tokens in standard.css,
+   listed in skins.css). Kept together here so each group's
+   look is in one place.
+   ====================================================================== */
+
+/* LIVE > QUICK ACTIONS: the item row (BIKE, rods, SQUIRTBOTTLE) */
+.bikebtn {
+  background: var(--item-btn-bg); color: var(--item-btn-ink);
+  border: 2px solid var(--item-btn-line); padding: 6px 2px;
+  border-radius: var(--item-btn-radius);
+  box-shadow: var(--item-btn-shadow);
+}
+.bikebtn:disabled { background: var(--item-btn-off); border-color: var(--item-btn-off-line); }
+.bikebtn:active:not(:disabled) {
+  box-shadow: var(--item-btn-shadow-down); transform: translateY(var(--btn-press-move));
+}
+
+/* LIVE > QUICK ACTIONS: the field move grid (CUT, FLY, SURF, ...) */
+.fbtn.fmove {
+  background: var(--move-btn-bg); color: var(--move-btn-ink);
+  border-color: var(--move-btn-line); border-radius: var(--move-btn-radius);
+  box-shadow: var(--move-btn-shadow);
+}
+.fbtn.fmove:active:not(:disabled) {
+  box-shadow: var(--move-btn-shadow-down); transform: translateY(var(--btn-press-move));
+}
+.fbtn.fmove .fsub { color: var(--move-btn-sub); }
+.fbtn.fmove:disabled { color: var(--move-btn-off); border-color: var(--move-btn-off-line); }
+.fbtn.fmove:disabled .fsub { color: var(--move-btn-off); }
+.fbtn.fmove.on { background: var(--move-btn-on-bg); color: var(--move-btn-on-ink); }
+.fbtn.fmove.on .fsub { color: var(--move-btn-on-ink); }
+
+/* POKéMON: SWITCH and DETAILS */
+.mode.pbtn {
+  background: var(--party-btn-bg); color: var(--party-btn-ink);
+  border-color: var(--party-btn-line); border-radius: var(--party-btn-radius);
+  box-shadow: var(--party-btn-shadow);
+}
+.mode.pbtn:active:not(:disabled) {
+  box-shadow: var(--party-btn-shadow-down); transform: translateY(var(--btn-press-move));
+}
+.toolbar .mode.pbtn:disabled { color: var(--party-btn-off); border-color: var(--party-btn-off-line); }
+
+/* PC: the box buttons (1, 2, 3 ...) */
+.boxchips .chip {
+  background: var(--pc-btn-bg); color: var(--pc-btn-ink);
+  border-color: var(--pc-btn-line); border-radius: var(--pc-btn-radius);
+  box-shadow: var(--pc-btn-shadow);
+}
+.boxchips .chip:active {
+  box-shadow: var(--pc-btn-shadow-down); transform: translateY(var(--btn-press-move));
+}
+.boxchips .chip.on { background: var(--pc-btn-on-bg); color: var(--pc-btn-on-ink); }
+.boxchips .chip.cur::after { background: var(--pc-btn-current); }
+
+/* ======================================================================
+   Typography: every piece of text plays one of six roles, and each role
+   has its own font and weight tokens (standard.css, skins.css).
+   Sizes stay per element: they are tuned for the pixel font.
+
+     label    a small section heading above content
+     title    the main heading of a box
+     subhead  a heading inside a section
+     name     the name in a list row
+     note     the small grey hints
+     desc     a POKéDEX entry's description
+     body     everything else (set on <body>, above)
+
+   Line height and letter spacing (-leading / -tracking) only apply when a
+   skin sets them: the rules below have no weight of their own (:where), so
+   until then each element keeps what it had (a few, like .note, fall back
+   to their own value).
+
+   To give an element a role, add its selector to the role's list here.
+   ====================================================================== */
+
+/* the tab names */
+.tab { font-family: var(--tab-font); font-weight: var(--tab-weight); }
+:where(.tab) { line-height: var(--tab-leading); letter-spacing: var(--tab-tracking); }
+
+/* label: DEXNAV, QUICK ACTIONS, FIELD MOVES, PHONE, RADIO, CLOCK, the ITEMS
+   pockets, FILTER / TYPE / SORT, SEEN / OWN, TEAM, MOVING, and keys like
+   HT / WT */
+.loc-k, .sec-k, .k {
+  font-family: var(--label-font); font-weight: var(--label-weight);
+}
+:where(.loc-k, .sec-k, .k) { line-height: var(--label-leading); letter-spacing: var(--label-tracking); }
+
+/* title: ROUTE 34 (and the clock), BOX 1, the trainer, a POKéDEX entry's
+   name and its NEST page, the caller */
+.loc-name, .boxbar .bt, .bn, .entry-name, .area-title .at, .call-head {
+  font-family: var(--title-font); font-weight: var(--title-weight);
+}
+:where(.loc-name, .boxbar .bt, .bn, .entry-name, .area-title .at, .call-head) {
+  line-height: var(--title-leading); letter-spacing: var(--title-tracking);
+}
+
+/* subhead: GRASS · NITE, the POKéDEX's type groups, a chooser's question
+   (FLY where?) */
+.sec-head, .dgroup, .ptitle {
+  font-family: var(--subhead-font); font-weight: var(--subhead-weight);
+}
+:where(.sec-head, .dgroup, .ptitle) { line-height: var(--subhead-leading); letter-spacing: var(--subhead-tracking); }
+
+/* name: POKéMON (party, foe, DexNav, PC, POKéDEX grid), items, moves,
+   AREA places, phone contacts and radio stations */
+.name, .iname, .dname, .mn, .an, .cn {
+  font-family: var(--name-font); font-weight: var(--name-weight);
+}
+:where(.name, .iname, .dname, .mn, .an, .cn) { line-height: var(--name-leading); letter-spacing: var(--name-tracking); }
+
+/* note: the small grey hints */
+.note, .pinhint {
+  font-family: var(--note-font); font-weight: var(--note-weight);
+}
+:where(.note, .pinhint) { line-height: var(--note-leading); letter-spacing: var(--note-tracking); }
+
+/* desc: a POKéDEX entry's description (its line height defaults to 2) */
+.entry-desc {
+  font-family: var(--desc-font); font-weight: var(--desc-weight);
+  line-height: var(--desc-leading, 2); letter-spacing: var(--desc-tracking, normal);
+}
+
+
+/* ---- HANDS-OFF: the dashboard (html.handsoff) --------------------------
+   One screen, no scrolling: the header strip, then PARTY | STAGE | DEXNAV
+   with the INFO RAIL under DEXNAV; notifications top right. A region whose
+   content runs long is clipped with a fade (.ck-clipped). */
+.cockpit { display: none; }
+html.handsoff .chrome, html.handsoff .pager { display: none; }
+html.handsoff body { overflow: hidden; background: #000; }
+html.handsoff .cockpit {
+  /* sized and scaled by fitCockpit (a fixed design size, scaled to fill) */
+  position: fixed; left: 0; top: 0; transform-origin: 0 0;
+  transition: filter .4s ease-out;
+  display: grid; box-sizing: border-box; height: 100vh; padding: 20px; gap: 12px; /* 12 + the bleed */
+  grid-template-columns: minmax(0, 22%) minmax(0, 1fr) minmax(0, 26%);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "head head head" "left stage nav";
+  background: var(--page-bg); color: var(--page-ink);
+}
+/* nothing happening for a while: the whole screen darkened to half its
+   brightness (burn-in care), slowly; it comes back quickly. A brightness
+   filter, not opacity: fading would only let the page behind show through,
+   and that is the same bright background */
+/* FireRed's location preview artwork behind the dashboard (MT. MOON ...):
+   under everything in the cockpit, filling it, pixels kept sharp */
+.ck-backdrop {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: center / cover no-repeat;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  opacity: 0; transition: opacity 1s ease-in-out;
+}
+.ck-backdrop.on { opacity: 1; }
+/* the boxes change their colours with it, as slowly */
+.cockpit .box { transition: background-color 1s ease-in-out, color 1s ease-in-out, border-color 1s ease-in-out; }
+html.handsoff .cockpit.ck-dim { filter: brightness(.7); transition: filter 3s ease-in; }
+.ck-head {
+  grid-area: head; display: flex; align-items: center; gap: 16px; padding: 10px 14px;
+  background: var(--header-bg); color: var(--header-ink); border-radius: var(--box-radius);
+  border-bottom: 3px solid var(--header-line);
+}
+.ck-place { font-size: 12px; }
+.ck-daytime { display: inline-flex; align-items: center; gap: 6px; font-size: 9px; color: var(--header-dim); }
+.ck-spacer { flex: 1; }
+.ck-money { font-size: 10px; }
+.ck-dex { display: inline-flex; align-items: baseline; gap: 6px; font-size: 10px; }
+.ck-dex .dim { font-size: 7px; color: var(--header-dim); }
+.ck-dex b { font-weight: normal; margin-right: 6px; }
+.ck-badges { display: inline-flex; align-items: center; gap: 4px; }
+.ck-badge { width: 24px; height: 24px; image-rendering: pixelated; image-rendering: crisp-edges; opacity: .25; filter: grayscale(1); }
+.ck-badge.on { opacity: 1; filter: none; }
+.ck-e4 { margin-left: 6px; padding: 2px 5px; font-size: 8px; border: 2px solid var(--header-dim); border-radius: 3px; color: var(--header-dim); opacity: .6; }
+.ck-e4.on { opacity: 1; color: var(--header-bg); background: var(--header-ink); border-color: var(--header-ink); }
+.ck-badges i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--header-dim); box-sizing: border-box; }
+.ck-badges i.on { background: var(--header-ink); border-color: var(--header-ink); }
+/* the game out of reach: the strip says so and the rest dims */
+.ck-offline { display: none; font-size: 9px; padding: 2px 6px; border-radius: 3px; background: var(--hp-red); color: #fff; }
+.offline .ck-offline { display: inline; }
+.offline .cockpit > section { opacity: .45; }
+.ck-tag { font-size: 7px; padding: 2px 5px; border: 1px solid var(--header-dim); border-radius: 3px; color: var(--header-dim); }
+.ck-party, .ck-stage, .ck-nav, .ck-card, .ck-main { overflow: hidden; }
+/* left: the party (six rows at most), the cards under it */
+.ck-left { grid-area: left; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.ck-party { flex: 0 0 auto; }
+.ck-stage { grid-area: stage; display: flex; flex-direction: column; gap: 10px; }
+.ck-nav { grid-area: nav; min-height: 0; }
+.ck-rail { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.ck-rail[hidden] { display: none; }
+/* clipped regions fade out at the bottom */
+.ck-clipped { -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 28px), transparent); }
+/* PARTY: compact rows, the lead marked */
+.ck-mon { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.ck-mon + .ck-mon { border-top: 2px solid rgba(128, 128, 128, .2); }
+/* the POKéMON fighting (battles only): larger, slowly growing and shrinking */
+.ck-mon.fighting { transform-origin: center; animation: ck-fighting 1.6s ease-in-out infinite; }
+@keyframes ck-fighting { 0%, 100% { transform: scale(1.03); } 50% { transform: scale(1.07); } }
+.ck-moninfo { flex: 1; min-width: 0; }
+.ck-monline { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.ck-monline .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck-lv { font-size: 8px; }
+/* the held item under the HP bar: its icon, then its name */
+.ck-held { display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 45%; font-size: 8px; color: var(--dim); align-self: center; }
+.ck-heldname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck-held .itemicon { width: 20px; height: 20px; flex: none; margin: -4px 0; }
+.ck-held .ck-heldmark { flex: none; }
+.ck-heldmark { width: 16px; height: 16px; image-rendering: pixelated; image-rendering: crisp-edges; }
+.ck-status { font-size: 7px; color: var(--hp-red); }
+/* Gen 3's status labels (the party menu's own PSN / PAR ... pictures), 2x */
+img.sticon {
+  width: 44px; height: 16px; flex: none; vertical-align: middle;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.usehp img.sticon { width: 33px; height: 12px; }
+/* STAGE: the big view and the inset in the corner */
+.ck-main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ck-main { min-height: 0; }
+.ck-main .mmcanvas { width: auto !important; height: auto !important; max-width: 100%; max-height: calc(var(--ck-h, 100vh) - 190px); }
+.ck-stage.has-safari .ck-main .mmcanvas { max-height: calc(var(--ck-h, 100vh) - 240px); }
+.ck-main .mmlegend { margin-top: 6px; }
+.ck-stage.fight .ck-main { align-items: stretch; justify-content: flex-start; }
+/* a battle or contest on the stage: everything larger, for across the room
+   (the inset map keeps its corner) */
+/* (zoomed by fitToBox in drawStage: 1.5x, smaller when it wouldn't fit,
+   and stretched to the stage's height: the player's side at its bottom,
+   the room between it and the foe) */
+.ck-stage.fight .battle-body { display: flex; flex-direction: column; box-sizing: border-box; }
+.ck-stage.fight .battle-body > .mine { margin-top: auto; }
+/* laid out like the game's battle screen: the foe's picture on the right of
+   its card, the player's back pic on the left above the party */
+.pback { display: none; }
+/* the foe: name, level and HP across the width; under them its badges,
+   odds and moves on the left, its picture on the right (foeStage) */
+.foe.foe-stage { display: block; }
+.foe-stage > .fi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.foe-lower { display: flex; align-items: flex-start; gap: 16px; margin-top: 8px; }
+.foe-left { flex: 1; min-width: 0; display: grid; gap: 8px; align-content: start; }
+.foe-left > .tmoves { padding-left: 0; }
+.foe-lower > img { flex: none; }
+html.gen3 .ck-stage.fight .mine .pback { height: 128px; }
+/* the foe's picture at the same 2x as the player's */
+.ck-stage.fight .foe:not(.me) img:not(.sticon) { width: 112px; height: 112px; }
+html.gen3 .ck-stage.fight .foe:not(.me) img:not(.sticon) { width: 128px; height: 128px; }
+/* no divider lines in the HANDS-OFF battle: the room does the separating */
+.ck-stage.fight .battle-body .mine, .ck-stage.fight .battle-body > .tmoves,
+.ck-stage.fight .battle-body .team { border-top: none; }
+/* the player's POKéMON: its front pic, mirrored to face right (the foe);
+   2x (Gen 1 / 2's 56px pics, Gen 3's 64px) */
+.ck-stage.fight .mine .pback {
+  display: block; height: 112px; width: auto; margin-bottom: 6px; transform: scaleX(-1);
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+/* the player's badges: room for the most there can be (three rows of stat
+   changes, seven at most, and two of effects), so new ones fill it in
+   without moving the card */
+.badgearea { display: grid; gap: 4px; align-content: start; }
+.badgearea:empty { display: none; }
+html.handsoff .ck-stage.fight .mine .badgearea { display: grid; min-height: 92px; }
+/* the TOWN MAP: always at the bottom of the left column, as wide as it */
+.ck-inset { flex: none; min-width: 0; padding: 8px; overflow: hidden; }
+.ck-inset[hidden] { display: none; }
+.ck-inset .mmcanvas { display: block; width: 100% !important; height: auto !important; max-height: calc(var(--ck-h, 100vh) * .4); }
+/* the SAFARI ZONE strip along the stage's bottom (map or battle) */
+.ck-safari {
+  flex: none; display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap;
+  padding-top: 10px; border-top: 2px dashed var(--ink); font-size: 11px;
+}
+.ck-safari[hidden] { display: none; }
+.ck-safari .sec-k { margin: 0; }
+.ck-sfval .dim { color: var(--dim); font-size: 9px; }
+.ck-sfval b { font-weight: normal; }
+/* DEXNAV's rows, shrunk to fit by fitToBox */
+.ck-navbody { transform-origin: 0 0; }
+/* the trainer's column (HANDS-OFF trainer battles, in DEXNAV's place) */
+.ck-trainer .bhead { margin-bottom: 4px; }
+.ck-trainer .team { border-top: 2px dashed var(--ink); }
+/* the moves tucked under the name: closer together, indented past the
+   icon, pulled up against their row */
+.ck-trainer .tmoves { gap: 0; padding: 0 0 6px 76px; margin-top: -6px; line-height: 1.5; }
+.ck-trainer .tmoves .dim { font-size: 7px; }
+.ck-trainer .trow { min-height: 28px; }
+.ck-trainer .team { gap: 2px; }
+.ck-trainer .trow.act .name { text-decoration: none; }
+/* the foe fighting: larger, slowly growing and shrinking (the party
+   column's ck-fighting); no cursor, and room at the sides for the pulse */
+.ck-trainer .tentry { padding: 0 10px; }
+.ck-trainer .tentry.fighting { transform-origin: center; animation: ck-fighting 1.6s ease-in-out infinite; }
+.ck-trainer .trow.act::before { visibility: hidden; }
+.ck-inset .mmlegend, .ck-inset .mmedge, .ck-inset .mmsw { display: none; }
+.ck-inset .areamap { max-width: none; }
+.ck-line { font-size: 8px; margin-top: 4px; }
+.ck-card { flex: none; }
+/* notifications: top right, over everything */
+.ck-toasts { position: fixed; top: calc(var(--ck-head-h, 56px) + 20px); right: 28px; width: 360px; display: flex; flex-direction: column; gap: 8px; z-index: 50; pointer-events: none; }
+/* notifications: a box in the --notice-* colours (skins.css) */
+.ck-toast, #toast {
+  --box-bg: var(--notice-bg); --box-ink: var(--notice-ink); --box-dim: var(--notice-dim);
+  --box-note: var(--notice-dim); --box-line: var(--notice-line);
+}
+.ck-toast { display: flex; align-items: center; gap: 10px; font-size: 9px; animation: ck-in .3s ease-out; transition: opacity .4s, transform .4s; }
+.ck-toast.out { opacity: 0; transform: translateX(24px); }
+.ck-toast .icon { flex: none; }
+@keyframes ck-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+
+/* Gen 3: an item's BAG icon in front of its name (24x24, the game's size) */
+.itemicon {
+  width: 24px; height: 24px; flex: none;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.item.has-icon { align-items: center; }
+.facts .itemicon { width: 16px; height: 16px; vertical-align: middle; margin-right: 4px; }
+
+/* ---- smooth scrolling on the ITEMS and PC tabs ---------------------------
+   The dotted leaders between a name and its count: many half-transparent
+   elements make every scroll frame expensive on phones, so where the
+   browser can mix colours they get a pre-faded colour instead of opacity */
+@supports (color: color-mix(in srgb, red 50%, transparent)) {
+  .item .lead, .pcrow .lead, .dexrow .lead, .hline .lead {
+    opacity: 1;
+    border-bottom-color: color-mix(in srgb, var(--dim) 50%, transparent);
+  }
+}
+
+/* Gen 3: the PC box bar on the box's wallpaper header (the capsule at the
+   top of the game's box), filling the bar; the name in white with a dark
+   edge, as the game draws it, so it reads on every wallpaper */
+.boxbar.has-header {
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.boxbar.has-header .bt {
+  color: #ffffff;
+  text-shadow: 1px 1px 0 #202020, -1px 1px 0 #202020, 1px -1px 0 #202020, -1px -1px 0 #202020;
+}
+.boxbar.has-header .bt .bs { color: #ffffff; }
+.boxbar.has-header button { background: var(--paper); }
+
+/* Gen 3: the game's box bar: ◀ header ▶, the arrows (8x16, at 2x) on the
+   page itself, the header box between them narrower than the full width */
+.boxbar.gamebar { gap: 8px; justify-content: center; }
+.boxbar.gamebar .boxhead {
+  flex: 0 1 300px; min-width: 0; padding: 8px 10px; display: flex; justify-content: center;
+}
+.boxbar.gamebar .boxarrow {
+  flex: none; width: 32px; height: 40px; padding: 0; margin: 0;
+  background: none; border: 0; box-shadow: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.boxbar.gamebar .boxarrow img {
+  width: 16px; height: 32px; display: block;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.boxbar.gamebar .boxarrow:active img { transform: translateY(1px); }
+.boxhead.has-header {
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+.boxhead.has-header .bt {
+  color: #ffffff;
+  text-shadow: 1px 1px 0 #202020, -1px 1px 0 #202020, 1px -1px 0 #202020, -1px -1px 0 #202020;
+}
+.boxhead.has-header .bt .bs { color: #ffffff; }
+
+/* ---- the BAG's and the PC's lists: one row per entry, divided -----------
+   No dotted leader between a name and its count: a divider between every
+   two rows instead, as wide as the rows (so it stays clear of the box's
+   frame). The rows sit edge to edge with their own padding, so a picked
+   row's inverted block fills exactly the band between two dividers.
+   (The POKéDEX MOVES list shares the .items style and keeps its own.) */
+.items:not(.dexmoves), .boxlist { gap: 0; }
+.items:not(.dexmoves) .item .lead, .boxlist .pcrow .lead { display: none; }
+.items:not(.dexmoves) .item .iname { flex: 1; }
+/* the rows reach 6px past the list on each side (still inside the box's
+   padding), so a picked row's block is a little wider than its text */
+.items:not(.dexmoves) .item { padding: 8px 12px; margin: 0 -6px; }
+.boxlist .pcrow { padding: 7px 12px; margin: 0 -6px; }
+/* the head (a pocket's name), the count line and the notes keep their room */
+.items:not(.dexmoves) > .phead, .items:not(.dexmoves) > .note,
+.items:not(.dexmoves) > .count-line { margin-bottom: 6px; }
+.items:not(.dexmoves) .item + .item::before,
+.boxlist .pcrow + .pcrow::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: var(--dim); opacity: .35; pointer-events: none;
+}
+/* the picked row: a plain block with rounded corners, no ring around it */
+.items:not(.dexmoves) .item.sel, .boxlist .pcrow.sel { box-shadow: none; border-radius: 6px; }
+/* a picked row and the one under it lose their divider (it sits inside
+   the top of each row, since PC rows clip what they draw outside), so the
+   block stays clean */
+.items:not(.dexmoves) .item.sel::before, .boxlist .pcrow.sel::before,
+.items:not(.dexmoves) .item.sel + .item::before,
+.boxlist .pcrow.sel + .pcrow::before { opacity: 0; }
+
+/* PC box rows: the name clear of the icon (Gen 3's are drawn 1.5x, so they
+   need more room), the held-item marker right after it, and the level at
+   the right edge: the page pads it to three places after a fixed ":L"
+   (":L100" / ":L 99" / ":L  5"), and pre keeps those spaces, so the
+   numbers stand under each other; tabular digits for skins with a
+   proportional font */
+.boxlist .pcrow .name { flex: 0 1 auto; min-width: 0; margin-left: 4px; }
+html.gen3 .boxlist .pcrow .name { margin-left: 10px; }
+.boxlist .pcrow .lv {
+  margin-left: auto; white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gen 3: the Sevii Island after a place's name in the AREA list */
+.arow .aisle {
+  margin-left: 6px; padding: 1px 4px; border-radius: 3px; font-size: 7px;
+  color: var(--paper); background: var(--dim); white-space: nowrap; vertical-align: 1px;
+}
+
