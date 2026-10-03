@@ -49,10 +49,23 @@ return function(mod, socket)
     -- handler(req) -> status, contentType, body[, maxAge]
     -- req = { method, path, query, headers (lowercase names), body }
     -- maxAge (seconds) lets the browser cache the response; default no-store
+    -- Quitting a game to the launcher drops this mod instance without telling
+    -- it (no event fires), so its listener would hold the port until the
+    -- garbage collector found it and the next game's companion couldn't bind.
+    -- The running server is noted on the luasocket module, which stays loaded
+    -- for the whole run, and a new one closes the one before it first.
+    local HOLDER = "__second_screen_companion_server"
+
     function Server.new(port, handler)
+        local previous = rawget(socket, HOLDER)
+        if previous then
+            pcall(previous.stop, previous)
+        end
         local sock, err = listen(port)
         if not sock then return nil, err end
-        return setmetatable({ port = port, sock = sock, handler = handler, clients = {} }, Server)
+        local self = setmetatable({ port = port, sock = sock, handler = handler, clients = {} }, Server)
+        rawset(socket, HOLDER, self)
+        return self
     end
 
     local function response(method, status, contentType, body, maxAge)
@@ -164,6 +177,7 @@ return function(mod, socket)
         for _, c in ipairs(self.clients) do c.sock:close() end
         self.clients = {}
         self.sock:close()
+        if rawget(socket, HOLDER) == self then rawset(socket, HOLDER, nil) end
     end
 
     return Server

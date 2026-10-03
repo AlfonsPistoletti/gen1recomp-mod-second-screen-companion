@@ -1,7 +1,7 @@
 {
   "id": "second_screen_companion",
   "name": "Second Screen Companion",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
