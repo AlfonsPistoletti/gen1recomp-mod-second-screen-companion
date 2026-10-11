@@ -756,6 +756,8 @@ return function(mod, uids, platform)
         if type(t) ~= "string" then return nil end
         player = tostring(player or "")
         t = t:gsub("{PLAYER}", player):gsub("<PLAYER>", player):gsub("#MON", "POKéMON"):gsub("#", "POKé")
+        -- the text box's other control codes ({PROMPT}, {DONE}, ...) mean nothing here
+        t = t:gsub("%{%u[%u_]*%}", ""):gsub("<%u[%u_]*>", "")
         t = t:gsub("%c+", " "):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
         return t ~= "" and t or nil
     end

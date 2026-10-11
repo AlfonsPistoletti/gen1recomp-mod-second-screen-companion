@@ -6,7 +6,8 @@
 --               the story contacts the game has enabled, then every trainer
 --               registered), with where they are and a REMATCH badge when
 --               they want a battle
---   BERRIES     every planted berry tree (save.berryTrees), placed by the
+--               (Ruby / Sapphire: TRAINER'S EYES instead, the same way)
+--   BERRIES     every berry tree the player has seen (save.berryTrees), placed by the
 --               map it grows on: the berry, its stage, the time to the next
 --               one, whether it wants water, and the yield once ripe
 --
@@ -99,7 +100,11 @@ return function(mod, platform, live, sprites)
         local out = {}
         for id, t in pairs(trees) do
             local berry, stage = tonumber(type(t) == "table" and t.berry) or 0, tonumber(type(t) == "table" and t.stage) or 0
-            if berry > 0 and stage > 0 then
+            -- the game plants its wild trees with growth stopped, and lets
+            -- each grow once it has been on screen (BerryTrees.setSeen), so a
+            -- stopped tree is one the player has never come across
+            local unseen = type(t) == "table" and t.stopGrowth == true
+            if berry > 0 and stage > 0 and not unseen then
                 local item = FIRST_BERRY_ITEM + berry - 1
                 local place = where[tonumber(id) or -1]
                 local ripe = stage == 5
@@ -130,6 +135,37 @@ return function(mod, platform, live, sprites)
         return out
     end
 
+    -- Ruby / Sapphire have no Match Call: their PokéNav's TRAINER'S EYES
+    -- lists the trainers fought that can be met again (and the leaders),
+    -- built the game's own way (src/ui/game3/rs/pokenav/data.lua
+    -- trainersEyes, from its PokéNav data), in the same shape
+    local function trainersEyes(game, session)
+        local Data = need("src.ui.game3.rs.pokenav.data")
+        local Kit = need("src.ui.game3.rse.scene_kit")
+        local Trainers = need("src.core.game3.scripting.trainers")
+        if not (Data and Kit and Trainers) then return {} end
+        local man, region = Kit.manifest("rse/pokenav_detail"), Kit.manifest("rse/region_map")
+        if not (man and region) then return {} end
+        local out = {}
+        for _, row in ipairs(Data.trainersEyes(session, game, man)) do
+            local t = try(Trainers.get, row.opponentId) or {}
+            local where = try(Data.sectionName, region, row.regionMapSectionId)
+            out[#out + 1] = {
+                name = type(t.name) == "string" and t.name ~= "" and t.name or "?",
+                class = type(t.className) == "string" and t.className ~= "" and t.className or false,
+                where = type(where) == "string" and where ~= "" and where or false,
+                rematch = (tonumber(row.rematchNo) or 0) ~= 0,
+            }
+        end
+        return out
+    end
+
+    local function isRs(session)
+        local okC, C = pcall(require, "src.core.game3.constants")
+        local id = okC and C.versionOf and try(C.versionOf, session)
+        return id == "ruby" or id == "sapphire"
+    end
+
     ---- state ------------------------------------------------------------------
 
     -- /state's pokenav part: false before the game world is up
@@ -137,6 +173,7 @@ return function(mod, platform, live, sprites)
     function N.state(game)
         local session = platform.save(game)
         if not session then return false end
+        local rs = isRs(session)
         local Rematch = need("src.core.game3.rse.rematch")
         local hasNav = Rematch and Rematch.flag and try(Rematch.flag, session, "FLAG_SYS_POKENAV_GET") or false
         -- the Match Call list changes slowly (a rematch coming up, a new
@@ -144,14 +181,14 @@ return function(mod, platform, live, sprites)
         local now = love.timer.getTime()
         local calls = callsMemo.list
         if not calls or callsMemo.session ~= session or now - callsMemo.at >= 2 then
-            local okC, built = pcall(matchCall, game, session)
+            local okC, built = pcall(rs and trainersEyes or matchCall, game, session)
             if not okC then mod.log:warn("match call list failed: %s", tostring(built)) built = {} end
             calls = built
             callsMemo.list, callsMemo.session, callsMemo.at = calls, session, now
         end
         local okB, trees = pcall(berries, game, session)
         if not okB then mod.log:warn("berry trees failed: %s", tostring(trees)) trees = {} end
-        return { nav = hasNav and true or false, matchCall = hasNav and calls or {}, berries = trees }
+        return { nav = hasNav and true or false, eyes = rs, matchCall = hasNav and calls or {}, berries = trees }
     end
 
     return N

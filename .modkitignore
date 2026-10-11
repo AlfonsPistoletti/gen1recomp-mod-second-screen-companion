@@ -1,2 +1,4 @@
-# development-only files: not in modkit pack
+# development-only files: not in modkit pack (exact paths: no folders or globs)
 testbattle3.lua
+tests/kr_test.lua
+tests/transfer_test.lua

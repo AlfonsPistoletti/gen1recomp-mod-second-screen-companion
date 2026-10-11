@@ -16,7 +16,8 @@
 -- height as feet * 100 + inches, weight in tenths of a pound, two text
 -- pages) and calls owned "caught"; it also has the Johto (NEW POKéDEX)
 -- order, sent as each entry's `jn` so the page can sort by it.
-return function(mod, sprites, Json, platform)
+-- kr: Kanto Reforged's extras (kr.lua; nil-safe without it)
+return function(mod, sprites, Json, platform, kr)
     local D = {}
 
     -- a new game session must never match a page's version from the last one
@@ -419,6 +420,12 @@ return function(mod, sprites, Json, platform)
         end
         if owned or spoilers then measures(out, e) end
         measureLabels(out, e)
+        -- Kanto Reforged gives every species an ability (one), shown like
+        -- Gen 3's: once caught, or with SPOILERS
+        local ability = def.ability
+        if (owned or spoilers) and type(ability) == "string" and ability ~= "" and ability ~= "NONE" then
+            out.abilities = { { name = (ability:gsub("_", " ")), desc = kr and kr.abilityText(ability) or nil } }
+        end
         -- SHOW HIDDEN VALUES, for what the entry shows in full
         if hidden and (owned or spoilers) then out.hidden = speciesHidden(def) end
         -- Gen 2: the footprint the entry shows beside the picture

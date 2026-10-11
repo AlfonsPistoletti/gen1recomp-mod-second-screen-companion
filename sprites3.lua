@@ -73,10 +73,45 @@ return function(mod, platform)
     -- the battle / summary front pic (Castform's normal form; Spinda's spots
     -- are the one per-mon picture and have no file, so it falls back to the
     -- plain species art)
+    -- A species a mod adds (1025dex and the like) has no file in the ROM
+    -- cache; such mods hand the game its art through the engine's own
+    -- Pokemon.frontPic / Pokemon.icon, so read the picture back from there.
+    -- A mod may still be building it (blank): LATER keeps it unsaved.
+    local LATER = {}
+    local function fromEngine(entry, w, h)
+        if type(entry) ~= "table" or not entry.image then return nil end
+        local lg = love.graphics
+        local canvas = lg.newCanvas(w, h)
+        lg.push("all")
+        lg.setCanvas(canvas)
+        lg.clear(0, 0, 0, 0)
+        lg.origin()
+        lg.setColor(1, 1, 1, 1)
+        local iw, ih = entry.image:getDimensions()
+        lg.draw(entry.image, 0, 0, 0, w / iw, h / ih)
+        lg.pop()
+        local data = canvas:newImageData()
+        canvas:release()
+        for y = 0, h - 1, 2 do
+            for x = 0, w - 1, 2 do
+                local _, _, _, a = data:getPixel(x, y)
+                if a > 0 then return data end
+            end
+        end
+        return LATER
+    end
+
     local function frontOf(sp, isShiny)
         local kind = isShiny and "front_shiny" or "front"
         local rel = ROOT .. kind .. "/" .. sp .. ".rgba"
         if not read(rel) and isShiny then rel = ROOT .. "front/" .. sp .. ".rgba" end
+        if not read(rel) then
+            -- asked now, so a mod that builds it has it ready by the request
+            pcall(Pokemon.frontPic, sp, 0, isShiny)
+            return register("front|mod|" .. kind .. "|" .. sp, function()
+                return fromEngine(Pokemon.frontPic(sp, 0, isShiny), PIC, PIC)
+            end)
+        end
         return register("front|" .. rel, function()
             return imageData(read(rel), PIC, PIC)
         end)
@@ -101,7 +136,10 @@ return function(mod, platform)
         local rel = ROOT .. "icons/" .. sp .. ".rgba"
         return register("icon|" .. rel, function()
             local rgba = read(rel)
-            if not rgba then return nil end
+            if not rgba then
+                local e = Pokemon.icon(sp)
+                return fromEngine(e, 32, type(e) == "table" and e.sheetH or 32)
+            end
             local h = #rgba >= 32 * 64 * 4 and 64 or 32
             return imageData(rgba, 32, h)
         end)
@@ -280,6 +318,12 @@ return function(mod, platform)
     -- pokemon/party/hold_icons.rgba, 8x16, the item marker on top and the
     -- MAIL one below (src/ui/game3/party_menu.lua heldItemSheet / Frame)
     local HOLD_ICONS = cacheRoot() .. "/pokemon/party/hold_icons.rgba"
+    -- Ruby / Sapphire keep the same 8x16 sheet as a PNG (rse/party)
+    local HOLD_ICONS_RS = cacheRoot() .. "/rse/party/held_items.png"
+    local function holdSheet()
+        if read(HOLD_ICONS) then return imageData(read(HOLD_ICONS), 8, 16) end
+        return read(HOLD_ICONS_RS) and pngData(HOLD_ICONS_RS) or nil
+    end
     local heldIds = {}
     function S.held(_, mon)
         local raw = mon and (mon.item or mon.heldItem)
@@ -292,12 +336,12 @@ return function(mod, platform)
         local okM, Mail = pcall(require, "src.core.game3.mail")
         local frame = okM and Mail.isMailItem and Mail.isMailItem(item) and 1 or 0
         if heldIds[frame] ~= nil then return heldIds[frame] or nil end
-        if not read(HOLD_ICONS) then
+        if not (read(HOLD_ICONS) or read(HOLD_ICONS_RS)) then
             heldIds[frame] = false
             return nil
         end
         heldIds[frame] = register("held|" .. HOLD_ICONS .. "|" .. frame, function()
-            local sheet = imageData(read(HOLD_ICONS), 8, 16)
+            local sheet = holdSheet()
             if not sheet then return nil end
             local out = love.image.newImageData(8, 8)
             out:paste(sheet, 0, 0, 0, frame * 8, 8, 8)
@@ -793,9 +837,11 @@ return function(mod, platform)
         if entry.png == nil then
             local ok, result = pcall(function()
                 local img = entry.build()
+                if img == LATER then return nil end
                 return img and img:encode("png"):getString() or false
             end)
             if not ok then mod.log:warn("sprite %s failed: %s", id, tostring(result)) end
+            if ok and result == nil then return nil end
             entry.png = ok and result or false
         end
         return entry.png or nil
@@ -832,11 +878,23 @@ return function(mod, platform)
     -- label is drawn in columns 5-26 of its row: cut to that, 22x8.
     local STATUS_ROWS = { PSN = 0, PAR = 1, SLP = 2, FRZ = 3, BRN = 4, PKRS = 5, FNT = 6 }
     local STATUS_SHEET = cacheRoot() .. "/pokemon/party/status_icons.rgba"
+    -- Ruby / Sapphire: the same rows as a PNG, 32x56 (rse/party)
+    local STATUS_SHEET_RS = cacheRoot() .. "/rse/party/status.png"
     function S.statusIcon(code)
         local row = STATUS_ROWS[code]
-        if not row or not read(STATUS_SHEET) then return nil end
-        return register("status|" .. STATUS_SHEET .. "|" .. code, function()
-            return crop(read(STATUS_SHEET), 32, 64, 5, row * 8, 22, 8)
+        if not row then return nil end
+        if read(STATUS_SHEET) then
+            return register("status|" .. STATUS_SHEET .. "|" .. code, function()
+                return crop(read(STATUS_SHEET), 32, 64, 5, row * 8, 22, 8)
+            end)
+        end
+        if not read(STATUS_SHEET_RS) then return nil end
+        return register("status|" .. STATUS_SHEET_RS .. "|" .. code, function()
+            local sheet = pngData(STATUS_SHEET_RS)
+            if not sheet then return nil end
+            local out = love.image.newImageData(22, 8)
+            out:paste(sheet, 0, 0, 5, row * 8, 22, 8)
+            return out
         end)
     end
 

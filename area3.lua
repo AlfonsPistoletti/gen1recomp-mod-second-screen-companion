@@ -95,8 +95,13 @@ return function(mod, sprites, live, platform, dex)
                             -- floors of one place merge into one row
                             if e.minL and (not row.minL or e.minL < row.minL) then row.minL = e.minL end
                             if e.maxL and (not row.maxL or e.maxL > row.maxL) then row.maxL = e.maxL end
-                            row.minChance = math.min(row.minChance, e.chance)
-                            row.maxChance = math.max(row.maxChance, e.chance)
+                            -- no chance where a mod's pick has none (1025dex)
+                            if row.minChance and e.chance then
+                                row.minChance = math.min(row.minChance, e.chance)
+                                row.maxChance = math.max(row.maxChance, e.chance)
+                            else
+                                row.minChance, row.maxChance = false, false
+                            end
                         end
                     end
                 end

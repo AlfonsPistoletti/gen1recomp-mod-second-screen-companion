@@ -120,21 +120,22 @@ return function(mod)
     -- which generation runs, and where it keeps things (Gen 1 / 2 / 3)
     local platform = runModule("platform.lua", mod)
     -- Gen 3 (FireRed / LeafGreen) has modules of its own (the *3.lua files):
-    -- its engine shares no data shapes with the Game Boy games. It is
-    -- read-only for now: nothing on the phone changes the game there.
+    -- its engine shares no data shapes with the Game Boy games.
     local gen3 = platform and platform.isGen3() or false
     -- sprites are a nice-to-have: without them the page still shows the party
     local sprites = platform and runModule(gen3 and "sprites3.lua" or "sprites.lua", mod, platform)
     local uids = runModule("uids.lua")
+    -- Kanto Reforged's extras on Gen 1 / 2 (optional: nil-safe without it)
+    local kr = not gen3 and runModule("kr.lua", mod) or nil
     local snapshot3 = gen3 and uids and platform and runModule("snapshot3.lua", mod, sprites, uids, platform)
     local snapshot = snapshot3 and snapshot3.snapshot
-        or (not gen3 and uids and platform and runModule("snapshot.lua", mod, sprites, uids, platform))
+        or (not gen3 and uids and platform and runModule("snapshot.lua", mod, sprites, uids, platform, kr))
     -- the ITEM / PACK tab's SORT orders (pure; edits.lua writes them)
     local bagsort = not gen3 and runModule("bagsort.lua")
     -- Gen 3's edits (SWITCH, BAG swaps / SORT, box moves) have their own
     -- file: FireRed's bag pockets and 30-slot boxes are shaped differently
     local edits = uids and platform and (gen3 and runModule("edits3.lua", mod, uids, platform)
-        or runModule("edits.lua", mod, uids, platform, bagsort))
+        or runModule("edits.lua", mod, uids, platform, bagsort, kr))
     -- PC TRANSFERS: party <-> boxes, BAG <-> item PC, behind the option
     local transfer = edits and (gen3 and runModule("transfer3.lua", mod, uids, platform, edits, sprites)
         or runModule("transfer.lua", mod, uids, platform, edits))
@@ -143,11 +144,11 @@ return function(mod)
         if gen3 then return gen3File end
         return platform.isGen2() and gen2File or gen1File
     end
-    local live = platform and runModule(byGen("live.lua", "live2.lua", "live3.lua"), mod, sprites, platform)
+    local live = platform and runModule(byGen("live.lua", "live2.lua", "live3.lua"), mod, sprites, platform, kr)
     -- quick actions (BICYCLE, rods, field moves); Gen 3's share the edits'
     -- free-roam gate
     local actions = platform and runModule(byGen("actions.lua", "actions2.lua", "actions3.lua"), mod, platform, edits)
-    local dex = platform and runModule(byGen("dex.lua", "dex.lua", "dex3.lua"), mod, sprites, Json, platform)
+    local dex = platform and runModule(byGen("dex.lua", "dex.lua", "dex3.lua"), mod, sprites, Json, platform, kr)
     local area = live and runModule(byGen("area.lua", "area2.lua", "area3.lua"), mod, sprites, live, platform, dex)
     local minimap = live and runModule("minimap.lua", mod, sprites, live, platform, Json)
     -- cries are rendered from Game Boy chip data; Gen 3's are PCM samples
@@ -208,8 +209,10 @@ return function(mod)
     }, "|"))):sub(1, 24)
 
     local PIN_TRIES = 5          -- wrong PINs before a new PIN is drawn
-    local PIN_LOCK_SECONDS = 30  -- and no guesses are taken for this long
-    local pin, pinMisses, pinLockedUntil = nil, 0, 0
+    local PIN_LOCK_SECONDS = 30  -- and no guesses are taken for this long,
+    -- doubled after every lockout (a script on the Wi-Fi would otherwise get
+    -- 5 tries every 30 s, about even odds within 12 hours)
+    local pin, pinMisses, pinLockedUntil, pinLockouts = nil, 0, 0, 0
 
     local function newPin()
         pin = ("%04d"):format(love.math.random(0, 9999))
@@ -368,8 +371,8 @@ return function(mod)
             -- Gold's PACK, FireRed's BAG
             BAG = platform.text(byGen("ITEM", "PACK", "BAG"))
         }
-        -- Gen 3: the PLAYER's PC items are listed (read-only; PC TRANSFERS
-        -- are not on Gen 3 yet)
+        -- Gen 3: the PLAYER's PC items are listed even with PC TRANSFERS
+        -- off (read-only then; with it on, transfer.pcItems below)
         if snapshot3 then
             state.pcItemsShown = true
             local okI, pcItems = pcall(snapshot3.pcItems, game)
@@ -578,8 +581,7 @@ return function(mod)
         ["no effect"] = "It won't have any effect.",
         ["mail give"] = "MAIL needs a letter: give it in the game.",
         ["bad request"] = "The game didn't understand that request.",
-        important = "That's too important to store.",
-        ["read-only"] = "Changes from the phone aren't supported in this game yet."
+        important = "That's too important to store."
     }
 
     -- POST /api/<command> with a small JSON body; replies with fresh state
@@ -691,18 +693,19 @@ return function(mod)
         if not secure() then return 200, "application/json", Json.encode({ ok = true }) end
         local now = love.timer.getTime()
         if now < pinLockedUntil then
-            return jsonError(429, "Too many wrong PINs. Wait a moment, then use the new PIN.")
+            return jsonError(429, "Too many wrong PINs. Wait, or scan the QR code shown in the game.")
         end
         local ok, body = pcall(Json.decode, req.body, 256)
         local guess = ok and type(body) == "table" and tostring(body.pin or "") or ""
         if guess == pin then
-            pinMisses = 0
+            pinMisses, pinLockouts = 0, 0
             return 200, "application/json", Json.encode({ ok = true, key = key })
         end
         pinMisses = pinMisses + 1
         if pinMisses >= PIN_TRIES then
             newPin()
-            pinLockedUntil = now + PIN_LOCK_SECONDS
+            pinLockedUntil = now + PIN_LOCK_SECONDS * 2 ^ math.min(pinLockouts, 10)
+            pinLockouts = pinLockouts + 1
             mod.log:warn("too many wrong PINs; drew a new one")
             return jsonError(403, "Too many wrong PINs. The game shows a new PIN now.")
         end

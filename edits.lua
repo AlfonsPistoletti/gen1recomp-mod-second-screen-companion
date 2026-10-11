@@ -9,7 +9,8 @@
 -- append to a box), so a second player can rearrange while the first one
 -- plays. Online trades that address box slots only run from the launcher
 -- with the game closed (src/online/Trade.lua openSlot).
-return function(mod, uids, platform, bagsort)
+-- kr: Kanto Reforged's extras (kr.lua; nil-safe without it)
+return function(mod, uids, platform, bagsort, kr)
     local Bag = require("src.inventory.Bag")
     local Sound = require("src.core.Sound")
 
@@ -40,17 +41,21 @@ return function(mod, uids, platform, bagsort)
         pcall(Sound.play, game.data, platform.isGen2(game) and "Sfx_SwitchPokemon" or "Swap")
     end
 
-    -- Which pocket an item sits in (Gen 1 has one bag: everything is ITEM).
+    -- Which pocket an item sits in (Gen 1 has one bag: everything is ITEM,
+    -- unless Kanto Reforged gives it pockets).
     function E.pocketOf(game, id)
-        if not platform.isGen2(game) then return "ITEM" end
+        if not platform.isGen2(game) then
+            return kr and kr.pocketOf(game.data, id) or "ITEM"
+        end
         local ok, pocket = pcall(Bag.pocketOf, id, game.data)
         return ok and pocket or "ITEM"
     end
 
     -- Gold's TM/HM pocket is always shown sorted by number (engine/items/
-    -- tmhm.asm), so its order cannot be changed.
+    -- tmhm.asm), so its order cannot be changed; so is Kanto Reforged's.
     function E.pocketFixed(game, pocket)
-        return platform.isGen2(game) and pocket == "TM_HM"
+        if not platform.isGen2(game) then return kr ~= nil and pocket == kr.FIXED_POCKET end
+        return pocket == "TM_HM"
     end
 
     -- The BAG's SELECT swap: exchange two entries of the live order table,
@@ -270,8 +275,11 @@ return function(mod, uids, platform, bagsort)
     -- item id to party POKéMON uid; an item it already holds goes back to
     -- the bag. Every check runs first. MAIL is refused: giving it opens the
     -- letter keyboard in the game, which the phone can't fill in.
+    -- Gen 1 has no held items of its own: there, Kanto Reforged's GIVE
+    -- (held_items.lua: mon.heldItem, mirrored to mon.item; no MAIL)
     function E.giveItem(game, id, uid)
-        if not platform.isGen2(game) then return nil, "unavailable" end
+        local gen2 = platform.isGen2(game)
+        if not gen2 and not (kr and kr.active()) then return nil, "unavailable" end
         local ok, why = E.editable(game)
         if not ok then return nil, why end
         if not platform.worldFree(game) then return nil, "party busy" end
@@ -284,14 +292,22 @@ return function(mod, uids, platform, bagsort)
         local mon = save.party[slot]
         -- PackMenu:giveToSlot, then TryGiveItemToPartymon in its order
         if mon.isEgg then return nil, "egg" end
-        if not E.canHold(game, id) then return nil, "cant hold" end
-        if isMail(id) then return nil, "mail give" end
-        local held = mon.item
-        if held and isMail(held) then return nil, "mail" end
+        if gen2 then
+            if not E.canHold(game, id) then return nil, "cant hold" end
+            if isMail(id) then return nil, "mail give" end
+        elseif not kr.giveable(game, id) then
+            return nil, "cant hold"
+        end
+        local held = mon.item or (not gen2 and mon.heldItem) or nil
+        if gen2 and held and isMail(held) then return nil, "mail" end
         if held == id then return true end
+        local function hold(item)
+            mon.item = item
+            if not gen2 then mon.heldItem = item end
+        end
         if not held then
             Bag.remove(save, id, 1)
-            mon.item = id
+            hold(id)
             return true
         end
         -- the swap: the old item back into the bag. A bag that can't take
@@ -306,7 +322,7 @@ return function(mod, uids, platform, bagsort)
             if order then refill(order, orderCopy) end
             return nil, "bag full"
         end
-        mon.item = id
+        hold(id)
         return true
     end
 
@@ -327,6 +343,8 @@ return function(mod, uids, platform, bagsort)
         if type(t) ~= "string" then return nil end
         player = tostring(player or "")
         t = t:gsub("{PLAYER}", player):gsub("<PLAYER>", player):gsub("#MON", "POKéMON"):gsub("#", "POKé")
+        -- the text box's other control codes ({PROMPT}, {DONE}, ...) mean nothing here
+        t = t:gsub("%{%u[%u_]*%}", ""):gsub("<%u[%u_]*>", "")
         t = t:gsub("%c+", " "):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
         return t ~= "" and t or nil
     end
@@ -371,6 +389,8 @@ return function(mod, uids, platform, bagsort)
         if id == "RARE_CANDY" or (type(def) == "table" and def.machine) then return "scene" end
         local okI, ItemEffects = pcall(require, "src.inventory.ItemEffects")
         if okI and ItemEffects.isStone and ItemEffects.isStone(id) then return "scene" end
+        -- Kanto Reforged's berries: medicine from the BAG (its ItemEffects.use)
+        if kr and kr.isBerry(id) then return "mon" end
         if not GEN1_USE[id] then return nil end
         return GEN1_PICKS_MOVE[id] and "move" or "mon"
     end

@@ -1,7 +1,8 @@
 -- Turns the live save into the plain table /state serves as JSON. Battlers
 -- hold the same mon tables as game.save.party, so HP, PP and status changes
 -- during a fight show up here without any battle-specific code.
-return function(mod, sprites, uids, platform)
+-- kr: Kanto Reforged's extras (kr.lua; nil-safe without it)
+return function(mod, sprites, uids, platform, kr)
     local Stats = require("src.pokemon.Stats")
 
     -- The stats each generation shows, in summary-screen order. Gen 2 split
@@ -47,6 +48,31 @@ return function(mod, sprites, uids, platform)
     local function itemName(data, id)
         local def = data.items and data.items[id]
         return def and def.name or (tostring(id):gsub("_", " "))
+    end
+
+    -- the held item: the engine's mon.item, or Kanto Reforged's Gen 1
+    -- mon.heldItem
+    local function heldOf(mon)
+        local id = mon.item or mon.heldItem
+        if id == nil or id == 0 or id == "" then return nil end
+        return id
+    end
+
+    -- "male" / "female" / false: Gen 2's own words, or Kanto Reforged's
+    -- Gen 1 "M" / "F"
+    local function genderOf(mon)
+        local g = mon.gender
+        if g == "male" or g == "M" then return "male" end
+        if g == "female" or g == "F" then return "female" end
+        return false
+    end
+
+    -- the species' ability (Kanto Reforged gives every species one), with
+    -- its text where Kanto Reforged has one
+    local function abilityOf(def)
+        local id = def.ability
+        if type(id) ~= "string" or id == "" or id == "NONE" then return nil end
+        return { name = (id:gsub("_", " ")), desc = kr and kr.abilityText(id) or nil }
     end
 
     local function isEgg(mon)
@@ -192,12 +218,21 @@ return function(mod, sprites, uids, platform)
 
         local stats = mon.stats or {}
         local statList = {}
+        -- Kanto Reforged on Red: SPECIAL split into SP.ATK / SP.DEF, as its
+        -- summary shows them
+        local split = not platform.isGen2(game) and kr and kr.splitSpecial(game, def, mon)
         for _, s in ipairs(platform.isGen2(game) and STATS_GEN2 or STATS_GEN1) do
-            statList[#statList + 1] = { label = s[2], value = stats[s[1]] or 0 }
+            if split and s[1] == "special" then
+                statList[#statList + 1] = { label = "SP.ATK", value = split.sp_attack or 0 }
+                statList[#statList + 1] = { label = "SP.DEF", value = split.sp_defense or 0 }
+            else
+                statList[#statList + 1] = { label = s[2], value = stats[s[1]] or 0 }
+            end
         end
         local item = false
-        if mon.item and mon.item ~= 0 and mon.item ~= "" then
-            item = { id = tostring(mon.item), name = itemName(data, mon.item) }
+        local held = heldOf(mon)
+        if held then
+            item = { id = tostring(held), name = itemName(data, held) }
         end
         return {
             name = mon.nickname or def.name or tostring(mon.species),
@@ -207,7 +242,7 @@ return function(mod, sprites, uids, platform)
             maxHp = stats.hp or mon.maxHp or 0,
             status = mon.status or false,
             shiny = shiny(mon),
-            gender = (mon.gender == "male" or mon.gender == "female") and mon.gender or false,
+            gender = genderOf(mon),
             front = imageUrl("front", data, mon),
             -- Crystal: the front pic's animation, played when DETAILS opens
             anim = animUrl(data, mon),
@@ -224,6 +259,7 @@ return function(mod, sprites, uids, platform)
             },
             statList = statList,
             item = item,
+            ability = abilityOf(def),
             moves = moves,
             -- SHOW HIDDEN VALUES: DVs, Stat Exp and the rest (nil when off)
             hidden = opts.hidden and hiddenValues(game, data, mon, def) or nil,
@@ -272,7 +308,7 @@ return function(mod, sprites, uids, platform)
         return order
     end
 
-    local function itemEntry(data, save, id, gen2)
+    local function itemEntry(game, data, save, id, gen2)
         local items = data.items or {}
         local def = items[id] or {}
         local entry = { id = tostring(id), name = def.name or (tostring(id):gsub("_", " ")) }
@@ -303,10 +339,18 @@ return function(mod, sprites, uids, platform)
         local key = def.keyItem or tostring(id):find("^HM_") ~= nil
         entry.count = not key and (save.inventory[id] or 0) or false
         entry.key = key and true or false
+        -- Kanto Reforged: its BAG pocket, and GIVE TO HOLD for what its
+        -- party menu's GIVE accepts
+        if kr then
+            entry.pocket = kr.pocketOf(data, id)
+            entry.hold = kr.giveable(game, id) or nil
+        end
         if machine then
             local mdef = data.moves and data.moves[machine.move]
             entry.machine = ("%s%02d"):format(machine.kind or "TM", machine.number or 0)
             entry.move = mdef and mdef.name or tostring(machine.move)
+            -- Kanto Reforged's TMs & HMs pocket: TMs, then HMs, by number
+            entry.sortKey = (machine.kind == "HM" and 1000 or 0) + (tonumber(machine.number) or 0)
         end
         return entry
     end
@@ -316,17 +360,22 @@ return function(mod, sprites, uids, platform)
         local gen2 = platform.isGen2(game)
         local list, raw = {}, {}
         for _, id in ipairs(bagOrder(save, items)) do
-            list[#list + 1] = itemEntry(data, save, id, gen2)
+            list[#list + 1] = itemEntry(game, data, save, id, gen2)
             raw[#raw + 1] = tostring(id)
         end
         -- order: the bag's own order (the list below may regroup it), for
         -- the SORT's UNDO
         local bag = { money = platform.money(save), items = list, order = raw }
-        if gen2 then
+        -- the pockets: Gold's PACK, or Kanto Reforged's Gen 1 BAG
+        local pockets, fixed = POCKETS, "TM_HM"
+        if not gen2 then
+            pockets, fixed = kr and kr.pockets(), kr and kr.FIXED_POCKET
+        end
+        if pockets then
             -- the TM/HM pocket is always listed by number
             local tms = {}
             for _, e in ipairs(list) do
-                if e.pocket == "TM_HM" then tms[#tms + 1] = e end
+                if e.pocket == fixed then tms[#tms + 1] = e end
             end
             table.sort(tms, function(a, b)
                 if (a.sortKey or 0) ~= (b.sortKey or 0) then return (a.sortKey or 0) < (b.sortKey or 0) end
@@ -334,16 +383,16 @@ return function(mod, sprites, uids, platform)
             end)
             local rest = {}
             for _, e in ipairs(list) do
-                if e.pocket ~= "TM_HM" then rest[#rest + 1] = e end
+                if e.pocket ~= fixed then rest[#rest + 1] = e end
             end
             for _, e in ipairs(tms) do rest[#rest + 1] = e end
-            for _, e in ipairs(rest) do e.sortKey = nil end
             bag.items = rest
             bag.pockets = {}
-            for _, p in ipairs(POCKETS) do
-                bag.pockets[#bag.pockets + 1] = { id = p.id, label = p.label, fixed = p.id == "TM_HM" }
+            for _, p in ipairs(pockets) do
+                bag.pockets[#bag.pockets + 1] = { id = p.id, label = p.label, fixed = p.id == fixed }
             end
         end
+        for _, e in ipairs(bag.items) do e.sortKey = nil end
         return bag
     end
 
@@ -366,8 +415,8 @@ return function(mod, sprites, uids, platform)
                     egg = egg or nil,
                     icon = imageUrl("icon", data, mon)
                 }
-                if not egg and mon.item and mon.item ~= 0 and mon.item ~= "" then
-                    row.item = itemName(data, mon.item)
+                if not egg and heldOf(mon) then
+                    row.item = itemName(data, heldOf(mon))
                     row.held = imageUrl("held", data, mon)
                 end
                 list[#list + 1] = row

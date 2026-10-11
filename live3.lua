@@ -153,6 +153,45 @@ return function(mod, sprites, platform)
         return false
     end
 
+    -- A mod that swaps the wild POKéMON for its own picks can publish them:
+    -- 1025dex's exports.dexnavEncounters(mapId) -> { land = { slots = { {
+    -- species (internal id), minLevel, maxLevel, weight } } }, water = ... },
+    -- nil where it leaves the ROM's table alone. Its weights are only there
+    -- where its pick is a weighted roll; else the chance is left out.
+    local PROVIDERS = { "1025dex" }
+    local function modEncounters(mapId)
+        for _, id in ipairs(PROVIDERS) do
+            local handle = mod.find and mod.find(id)
+            local fn = handle and type(handle.exports) == "table" and handle.exports.dexnavEncounters
+            if type(fn) == "function" then
+                local t = try(fn, mapId)
+                if type(t) == "table" then return t end
+            end
+        end
+        return nil
+    end
+
+    local function modSection(save, area, kind, label, rate, spoilers)
+        local slots = type(area) == "table" and area.slots
+        if type(slots) ~= "table" then return nil end
+        local total, weighted = 0, true
+        for _, s in ipairs(slots) do
+            local w = type(s) == "table" and tonumber(s.weight)
+            if w and w > 0 then total = total + w else weighted = false end
+        end
+        local list = {}
+        for _, s in ipairs(slots) do
+            local sp = type(s) == "table" and tonumber(s.species)
+            if sp and sp > 0 then
+                local share = weighted and total > 0 and tonumber(s.weight) / total or false
+                list[#list + 1] = dexEntry(save, sp, share, tonumber(s.minLevel), tonumber(s.maxLevel), spoilers)
+            end
+        end
+        if #list == 0 then return nil end
+        if weighted then sortList(list) end
+        return { kind = kind, label = label, rate = rate or false, list = list }
+    end
+
     -- allRods: every rod, owned or not (the POKéDEX AREA list)
     local function dexnav(game, mapId, spoilers, allRods)
         local E = encounters()
@@ -166,11 +205,24 @@ return function(mod, sprites, platform)
         -- MAP_TYPE_UNDERGROUND (pokefirered/include/constants/map_types.h)
         local cave = tonumber(def.mapType) == 4 or tostring(def.mapType or ""):find("UNDERGROUND") ~= nil
         local land, landRate = slotsOf(t.land or t.grass)
-        out[#out + 1] = section(save, land, 1, LAND_WEIGHTS, cave and "cave" or "grass",
-            cave and "CAVE" or "GRASS", math.min(landRate * 16, 2880) / 2880, spoilers)
-        local water, waterRate = slotsOf(t.water)
-        out[#out + 1] = section(save, water, 1, WATER_WEIGHTS, "surf", "SURF",
-            math.min(waterRate * 16, 2880) / 2880, spoilers)
+        local _, waterRate = slotsOf(t.water)
+        -- the encounter rates stay the ROM's: such a mod changes who appears,
+        -- not how often. Where its list for a terrain is empty it picks no
+        -- one and the ROM's POKéMON appear (1025dex: choose -> nil), so the
+        -- ROM's section stands in. It picks for the rods and ROCK SMASH as
+        -- well but doesn't publish those, so they're left out rather than
+        -- shown wrong
+        local picked = modEncounters(mapId)
+        local water = slotsOf(t.water)
+        local landRateShare = math.min(landRate * 16, 2880) / 2880
+        local waterRateShare = math.min(waterRate * 16, 2880) / 2880
+        out[#out + 1] = picked and modSection(save, picked.land, cave and "cave" or "grass",
+                cave and "CAVE" or "GRASS", land and landRateShare, spoilers)
+            or section(save, land, 1, LAND_WEIGHTS, cave and "cave" or "grass",
+                cave and "CAVE" or "GRASS", landRateShare, spoilers)
+        out[#out + 1] = picked and modSection(save, picked.water, "surf", "SURF", water and waterRateShare, spoilers)
+            or section(save, water, 1, WATER_WEIGHTS, "surf", "SURF", waterRateShare, spoilers)
+        if picked then return out end
         local rocks, rockRate = slotsOf(t.rocks)
         out[#out + 1] = section(save, rocks, 1, WATER_WEIGHTS, "rock", "ROCK SMASH",
             math.min(rockRate * 16, 2880) / 2880, spoilers)

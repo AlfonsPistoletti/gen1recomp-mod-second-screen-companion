@@ -7,7 +7,8 @@
 --
 -- Gen 1 only: Gold / Silver load live2.lua instead.
 local GEN1_FIELD_DEFAULTS = "src.world.FieldDefaults"
-return function(mod, sprites, platform)
+-- kr: Kanto Reforged's extras (kr.lua; nil-safe without it)
+return function(mod, sprites, platform, kr)
     local FieldDefaults = require(GEN1_FIELD_DEFAULTS)
 
     local ROD_ORDER = { "OLD_ROD", "GOOD_ROD", "SUPER_ROD" }
@@ -572,6 +573,15 @@ return function(mod, sprites, platform)
             out.player.stages = stagesOf(battle.player.stages)
         end
         if out.active and battler then out.active.stages = stagesOf(battler.stages) end
+        -- weather, which Red has only with a mod (Kanto Reforged: field.weather
+        -- SUNNY / RAINY / SANDSTORM / HAIL with its turns; _krWeather an
+        -- override, and an ability's weather has no count)
+        local field = type(battle.field) == "table" and battle.field or {}
+        local kind = ({ RAINY = "RAIN", SUNNY = "SUN", SANDSTORM = "SAND", HAIL = "HAIL" })[battle._krWeather or field.weather]
+        if kind then
+            local turns = not (battle._krWeather or battle._krAbilityWeather) and tonumber(field.weatherTurns) or 0
+            out.weather = { kind = kind, turns = turns > 0 and turns or false }
+        end
         -- multi-turn effects on each side's POKéMON
         if out.player and battle.player then
             out.player.effects = battlerEffects(data, battle.player, battler, hidden)
@@ -595,25 +605,35 @@ return function(mod, sprites, platform)
     -- level the POKéMON will have when picked up, the levels it grew and
     -- the fee, worked out as the gentleman does (story2.lua's withdraw,
     -- scripts/Daycare.asm): the stored exp plus 1 per step, capped at 100,
-    -- against the level it was left at; ¥100 plus ¥100 per level
+    -- against the level it was left at; ¥100 plus ¥100 per level.
+    -- Kanto Reforged makes it Gen 3's: a second POKéMON (mon2 /
+    -- depositLevel2, the same steps) and an EGG waiting (save.daycare.egg)
     local function daycare(game)
         local dc = game.save and game.save.daycare
-        local mon = type(dc) == "table" and dc.mon
-        if type(mon) ~= "table" then return false end
-        local def = game.data.pokemon and game.data.pokemon[mon.species] or {}
-        local start = tonumber(dc.depositLevel) or tonumber(mon.level) or 1
-        local level = start
+        if type(dc) ~= "table" then return false end
         local okG, Growth = pcall(require, "src.pokemon.Growth")
-        if okG and Growth.levelForExp then
-            local ok, lv = pcall(Growth.levelForExp, def.growthRate, (tonumber(mon.exp) or 0) + (tonumber(dc.steps) or 0))
-            if ok and tonumber(lv) then level = math.max(start, math.min(100, lv)) end
+        local mons = {}
+        for _, slot in ipairs({ { "mon", "depositLevel" }, { "mon2", "depositLevel2" } }) do
+            local mon = dc[slot[1]]
+            if type(mon) == "table" then
+                local def = game.data.pokemon and game.data.pokemon[mon.species] or {}
+                local start = tonumber(dc[slot[2]]) or tonumber(mon.level) or 1
+                local level = start
+                if okG and Growth.levelForExp then
+                    local ok, lv = pcall(Growth.levelForExp, def.growthRate, (tonumber(mon.exp) or 0) + (tonumber(dc.steps) or 0))
+                    if ok and tonumber(lv) then level = math.max(start, math.min(100, lv)) end
+                end
+                local grown = level - start
+                mons[#mons + 1] = {
+                    name = mon.nickname or def.name or tostring(mon.species),
+                    icon = art("icon", game.data, mon),
+                    level = level, gained = grown, fee = 100 + 100 * grown,
+                }
+            end
         end
-        local grown = level - start
-        return { places = { { name = "ROUTE 5", mons = { {
-            name = mon.nickname or def.name or tostring(mon.species),
-            icon = art("icon", game.data, mon),
-            level = level, gained = grown, fee = 100 + 100 * grown,
-        } } } } }
+        local egg = type(dc.egg) == "table"
+        if #mons == 0 and not egg then return false end
+        return { places = { { name = "ROUTE 5", mons = mons, egg = egg } } }
     end
 
     -- In the SAFARI ZONE (save.safari = { balls, steps }; the steps count
@@ -668,6 +688,17 @@ return function(mod, sprites, platform)
             out.location = { mapId = tostring(map.id), name = locationName(game, map.id) }
             out.dexnav = memoNav(game, tostring(map.id) .. "|" .. tostring(spoilers),
                 function() return dexnav(game, map, spoilers) end)
+            -- Kanto Reforged's roaming legendaries on this route (their
+            -- level is set when one appears, so none is shown)
+            local roamers = kr and #out.dexnav > 0 and kr.roamersAt(game, map.id) or {}
+            if #roamers > 0 then
+                local list = {}
+                for _, species in ipairs(roamers) do
+                    list[#list + 1] = dexEntry(game, species, false, false, false, spoilers)
+                end
+                out.dexnav[#out.dexnav + 1] = { kind = "roam", label = "ROAMING", rate = false,
+                    note = "ON THIS ROUTE", list = list }
+            end
         end
         local battle = findBattle(game)
         if battle then out.battle = battleState(game, battle, spoilers, opts and opts.hidden) end

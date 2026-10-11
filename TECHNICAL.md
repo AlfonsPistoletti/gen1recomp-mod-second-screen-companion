@@ -295,7 +295,7 @@ tap a POKéMON there to swap, or **MOVE HERE** to put it at the end.
   hint) into the PIN box on the ITEMS / PC tabs. That works from a PC
   browser too. Pairing lasts until the game restarts and is shared by all
   tabs of that browser. After 5 wrong PINs the game draws a new PIN and
-  takes no guesses for 30 seconds.
+  takes no guesses for 30 seconds, twice as long after each further lockout.
 - **Always on:** other websites open in your browser cannot send edits to
   the game (edits need a header only this page sends, and the server only
   answers requests addressed to an IP, `localhost` or a local machine name).
@@ -472,7 +472,10 @@ save in the game to keep the changes.
 - **LIVE:** the location is the region map's place name; DexNav lists
   grass (or cave), SURF, ROCK SMASH and each rod the player owns, with
   FireRed's slot weights, plus the roaming legendary while it is on your
-  route. The battle section shows the foe and, in trainer battles, the
+  route. With 1025dex, grass and SURF list its picks instead (its
+  `dexnavEncounters`, for the generations chosen in its option), with a
+  chance only where it rolls by weight; it doesn't publish its rod and ROCK
+  SMASH picks, so those sections are left out there. The battle section shows the foe and, in trainer battles, the
   team. Double battles show both foes and both of your POKéMON, each with
   its own card, stat changes and effects (`battleOut` reads every present
   position, 0-3). Against two trainers, each foe names its trainer and the
@@ -527,9 +530,11 @@ values). Where Emerald differs, the page follows Emerald:
   has played it.
 - **POKéNAV tab** (in the POKéGEAR's place): MATCH CALL lists your
   contacts as the PokéNav does, with where they are and a REMATCH badge
-  when they want a battle; BERRIES lists every tree you planted with the
-  berry, its stage, the time to the next one, a WATER badge when it's dry,
-  and how many berries are ripe.
+  when they want a battle; BERRIES lists every tree you planted or have
+  come across (the game keeps its wild trees from growing until they have
+  been on screen, and those stay hidden) with the berry, its stage, the
+  time to the next one, a WATER badge when it's dry, and how many berries
+  are ripe.
 - **FEEBAS:** with SPOILERS, on ROUTE 119 the minimap rings today's six
   FEEBAS tiles, worked out the way the game does (and without touching its
   random numbers).
@@ -550,6 +555,33 @@ like Red / Blue's metric entry screen (`GR. 0,7m`, `GEW. 6,9kg`); Gold's
 dex has no metric screen, so there it only follows a mod that adds those
 two fields. The page's own words (tab names, headings, hints
 such as "Face a tree") are the mod's and stay English.
+
+## Kanto Reforged
+
+With [Kanto Reforged](https://github.com/1Jamie/Kanto-Reforged) on, Red /
+Blue / Yellow and Gold / Silver / Crystal show what it adds, the way its own
+screens show it:
+
+- every POKéMON's **ability**, with its text, on the POKéMON details, the PC
+  sheet and the POKéDEX entry (once caught, or with SPOILERS)
+- **gender** (♂ / ♀) and **held items** on Red as well
+- on Red, **SP.ATK / SP.DEF** in place of SPECIAL while its SP.ATK / SP.DEF
+  option is on
+- on Red, the BAG in its **pockets** (ITEMS, BALLS, KEY ITEMS, TMs & HMs,
+  BERRIES); SWAP and SORT stay within a pocket, TMs & HMs by number. With
+  gen1_bag_pockets on instead, the BAG stays one list
+- on Red, **GIVE TO HOLD** for what its GIVE accepts (off with its BAG GIVE
+  option), and **USE** for its berries
+- ROUTE 5's **DAY-CARE** with both POKéMON and the EGG waiting
+- its **roaming legendaries** in DEXNAV on the route they're on (none in its
+  KANTO dex scope), and **weather** in Red's battles
+
+Its new species, types, moves, evolutions (the MOON STONE ones too) and
+wild POKéMON are plain game data, so they show like any mod's. What it keeps
+in its own code (ability texts, what can be held, the pockets, SP.ATK /
+SP.DEF) is read from its modules by `kr.lua`, written against 1.7; a later
+major version, or a change that moves those modules, only drops these
+extras. Not shown: its level caps, the BERRY FARM, and abilities in battle.
 
 ## Options
 
@@ -701,6 +733,7 @@ on for shared networks, and **PHONE SERVER** off on untrusted ones.
 - `dex.lua`: POKéDEX tab data (SEEN / OWN, every entry, entry pages)
 - `bagsort.lua`: the ITEM / PACK tab's SORT orders
 - `transfer.lua`: PC TRANSFERS (party <-> boxes, BAG <-> item PC)
+- `kr.lua`: Kanto Reforged's extras (ability texts, pockets, GIVE, SP.ATK / SP.DEF, roamers); nil-safe without it
 - `area.lua`: POKéDEX AREA view (nests and where each species is found)
 - `cry.lua`: a species' cry (and Gen 2's phone ring) as a WAV for the phone
 - `cry3.lua`: Gen 3's cries, rendered from the game's samples as a WAV

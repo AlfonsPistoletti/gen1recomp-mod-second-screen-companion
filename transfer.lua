@@ -230,7 +230,8 @@ return function(mod, uids, platform, edits)
     end
 
     -- the item PC, in the order its WITHDRAW list shows: Gen 2's own order
-    -- (PcItems.order), Gen 1's sorted by id (PlayerPC buildItems)
+    -- (PcItems.order), Gen 1's Bag.pcOrder (one entry per stack of 99, so
+    -- an item is listed once, at its first stack, with its total)
     function T.pcItems(game)
         local save = game and game.save
         if not save then return {} end
@@ -240,14 +241,13 @@ return function(mod, uids, platform, edits)
             local okP, PcItems = pcall(require, GEN2_PC_ITEMS)
             order = okP and PcItems.order(save, game.data.items) or {}
         else
-            order = {}
-            for id in pairs(pc) do order[#order + 1] = id end
-            table.sort(order)
+            order = Bag.pcOrder(save, game.data)
         end
-        local out = {}
+        local out, listed = {}, {}
         for _, id in ipairs(order) do
             local count = pc[id]
-            if count and count > 0 then
+            if count and count > 0 and not listed[id] then
+                listed[id] = true
                 local def = game.data.items and game.data.items[id]
                 local one = T.onlyOne(game, id)
                 out[#out + 1] = {
@@ -278,7 +278,7 @@ return function(mod, uids, platform, edits)
         if have <= 0 or Bag.isBadge(id) then return nil, "stale" end
         local n, err = checkQuantity(game, id, qty, seen, have)
         if not n then return nil, err end
-        local pc = pcStore(save)
+        pcStore(save)
 
         if platform.isGen2(game) then
             -- ItemPcMenu:deposit: room in the PC first (50 stacks of 99),
@@ -291,15 +291,11 @@ return function(mod, uids, platform, edits)
             return true
         end
 
-        -- Gen 1: PlayerPC's deposit (a new stack needs a free one of 50)
-        if not pc[id] then
-            local cap = (game.data.field or {}).pcItemCap or 50
-            local stacks = 0
-            for _ in pairs(pc) do stacks = stacks + 1 end
-            if stacks >= cap then return nil, "pc full" end
-        end
+        -- Gen 1: PlayerPC's deposit (storeInPC: stacks of 99 in 50 slots),
+        -- into the PC first, only then out of the bag
+        local cap = (game.data.field or {}).pcItemCap or 50
+        if not Bag.pcAdd(save, id, n, game.data, cap) then return nil, "pc full" end
         Bag.remove(save, id, n)
-        pc[id] = (pc[id] or 0) + n
         pcall(Sound.play, game.data, "Withdraw_Deposit")
         return true
     end
@@ -325,8 +321,7 @@ return function(mod, uids, platform, edits)
             if okP then PcItems.order(save, game.data.items) end
             return true
         end
-        pc[id] = have - n
-        if pc[id] <= 0 then pc[id] = nil end
+        Bag.pcRemove(save, id, n, game.data)
         pcall(Sound.play, game.data, "Withdraw_Deposit")
         return true
     end

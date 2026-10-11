@@ -4272,10 +4272,10 @@
       return;
     }
     var redraw = function () { renderPokenav(lastNav, true); };
-    var calls = foldBox("matchcall", "gphone", el("div", "sec-k", "MATCH CALL"), redraw);
+    var calls = foldBox("matchcall", "gphone", el("div", "sec-k", p.eyes ? "TRAINER'S EYES" : "MATCH CALL"), redraw);
     if (calls.body) {
       if (!p.nav) calls.body.appendChild(el("div", "empty", "No POKéNAV yet."));
-      else if (!list(p.matchCall).length) calls.body.appendChild(el("div", "empty", "No numbers yet."));
+      else if (!list(p.matchCall).length) calls.body.appendChild(el("div", "empty", p.eyes ? "No trainers yet." : "No numbers yet."));
       // one row each, divided like the BAG's lists: the trainer's class
       // faint above, then the name, the place at the right
       var mcList = el("div", "mclist");
