@@ -550,6 +550,33 @@ return function(mod, platform)
         return glyphCache[code]
     end
 
+    -- A species' footprint, as the POKéDEX entry draws it: <sp>.rgba (the
+    -- internal species id), 16x16, black on clear, under pokemon/pokedex/
+    -- footprints on FireRed / LeafGreen (PokedexChrome.footprintSource) and
+    -- pokemon/footprints on Ruby / Sapphire / Emerald (rse/pokedex.lua
+    -- footprintImage). An SVG path of 1x1 squares on a 16x16 box, like Gen
+    -- 2's. nil without one (a mod's species may have none).
+    local footprintCache = {}
+    function S.footprintPath(species)
+        local sp = tonumber(species)
+        if not sp then return nil end
+        if footprintCache[sp] ~= nil then return footprintCache[sp] or nil end
+        footprintCache[sp] = false
+        local rgba = read(ROOT .. "pokedex/footprints/" .. sp .. ".rgba")
+            or read(ROOT .. "footprints/" .. sp .. ".rgba")
+        if not rgba or #rgba < 16 * 16 * 4 then return nil end
+        local parts = {}
+        for y = 0, 15 do
+            for x = 0, 15 do
+                if rgba:byte((y * 16 + x) * 4 + 4) > 127 then
+                    parts[#parts + 1] = ("M%d %dh1v1h-1z"):format(x, y)
+                end
+            end
+        end
+        footprintCache[sp] = #parts > 0 and table.concat(parts) or false
+        return footprintCache[sp] or nil
+    end
+
     -- The TOWN MAP (region_map.c): one 240x160 picture per map (Kanto,
     -- the Sevii Islands 1-3, 4-5, 6-7), cut to the window the game shows
     -- it in (MAP_WINDOW 24,16 - 216,160: 192x144, square (x, y) at

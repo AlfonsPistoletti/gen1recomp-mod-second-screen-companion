@@ -1,7 +1,7 @@
 {
   "id": "second_screen_companion",
   "name": "Second Screen Companion",
-  "version": "0.9.3",
+  "version": "1.0.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -23,6 +23,6 @@
     "engine_internals"
   ],
   "assets_transforms": "transforms.lua",
-  "description": "See your team, battles, map, DexNav, bag, PC and Pokédex live on your phone, tablet or TV. Open the address shown in the game in any browser on the same Wi-Fi.",
+  "description": "Live dashboard on your phone. Switch Pokemon, give items, quick FLY",
   "github": "AlfonsPistoletti/gen1recomp-mod-second-screen-companion"
 }

@@ -303,6 +303,13 @@ return function(mod, sprites, Json, platform)
     end
 
     -- GET /dex/entry
+    -- Ruby / Sapphire (not Emerald), as pokenav3.lua tells them apart
+    local function isRs(game)
+        local okC, C = pcall(require, "src.core.game3.constants")
+        local id = okC and C.versionOf and try(C.versionOf, platform.save(game))
+        return id == "ruby" or id == "sapphire"
+    end
+
     function D.entry(game, species, spoilers, hidden)
         local sp, owned, seen = access(game, species, spoilers)
         if not sp then return nil end
@@ -336,6 +343,12 @@ return function(mod, sprites, Json, platform)
             end
         end
         if hidden and (owned or spoilers) then out.hidden = speciesHidden(sp) end
+        -- the footprint, where the game's entry shows one: Emerald on every
+        -- entry, FireRed / LeafGreen and Ruby / Sapphire once caught
+        -- (pokedex_screen.c:2901 isCaught; pokedex.c's RS rule)
+        if sprites and sprites.footprintPath and (owned or spoilers or (platform.isRse(game) and not isRs(game))) then
+            out.footprint = try(sprites.footprintPath, sp)
+        end
         out.height, out.weight = nil, nil
         return out
     end

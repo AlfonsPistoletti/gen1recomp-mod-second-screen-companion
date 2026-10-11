@@ -4000,7 +4000,7 @@
       facts.appendChild(el("div", "dim", "Loading..."));
     }
     top.appendChild(facts);
-    // Gen 2: the species' footprint, bottom right above the divider, in
+    // Gen 2 / 3: the species' footprint, bottom right above the divider, in
     // the text's colour (the game's own 16x16 cell, as a path)
     if (entry && entry.footprint) {
       var ns = "http://www.w3.org/2000/svg";
@@ -4704,16 +4704,19 @@
   var handsOffNow = false;
   var handsOffOverride = null;
   (function () {
-    var m = /[?&]handsoff=(1|0|on|off|auto)/.exec(location.search);
+    // 1 / on / true / yes, 0 / off / false / no, or auto (any case)
+    var m = /[?&]handsoff=(1|0|on|off|true|false|yes|no|auto)(?=&|#|$)/i.exec(location.search);
+    var want = m && m[1].toLowerCase();
+    var on = want === "1" || want === "on" || want === "true" || want === "yes";
     try {
-      if (m) {
-        if (m[1] === "auto") localStorage.removeItem("companion.handsoff");
-        else localStorage.setItem("companion.handsoff", (m[1] === "1" || m[1] === "on") ? "1" : "0");
+      if (want) {
+        if (want === "auto") localStorage.removeItem("companion.handsoff");
+        else localStorage.setItem("companion.handsoff", on ? "1" : "0");
       }
       var v = localStorage.getItem("companion.handsoff");
       handsOffOverride = v === "1" ? true : v === "0" ? false : null;
     } catch (e) {
-      handsOffOverride = m && m[1] !== "auto" ? (m[1] === "1" || m[1] === "on") : null;
+      handsOffOverride = want && want !== "auto" ? on : null;
     }
   })();
 
