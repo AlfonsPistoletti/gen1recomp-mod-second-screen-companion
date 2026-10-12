@@ -17,6 +17,8 @@ Works with **Red, Blue and Yellow**, **Gold, Silver and Crystal**, and
 
 - **Your team at a glance:** every Pokémon with its HP, status, level,
   held item, stats and moves. It updates as you play, even mid-battle.
+  Eggs show how many steps they still need to hatch (Gen 2 and 3, faster
+  with Flame Body or Magma Armor in Ruby, Sapphire and Emerald).
 - **Battle helper:** the foe's HP and the moves it has used so far, the
   trainer's team, stat changes (like ATK×0.66 after a Growl), weather, and
   effects such as Leech Seed, Reflect or Perish Song with the turns left.
@@ -26,7 +28,7 @@ Works with **Red, Blue and Yellow**, **Gold, Silver and Crystal**, and
 - **Maps:** the area you're in with its exits and items, and the town map
   with where you are.
 - **Pokédex:** every entry with pictures, descriptions, evolutions, moves,
-  where to find each Pokémon, and its cry.
+  where to find each Pokémon, its cry, and its footprint (Gen 2 and 3).
 - **Your bag and PC:** see everything, and sort or rearrange it from your
   phone. The game shows the new order too.
 - **Use items from your phone:** Potions, status cures, Rare Candy,
@@ -37,6 +39,8 @@ Works with **Red, Blue and Yellow**, **Gold, Silver and Crystal**, and
 - **Day-Care and Safari Zone:** how many levels your Pokémon gained at the
   Day-Care and what picking them up costs, and your Safari Balls and steps
   left.
+- **Shiny hunting helpers:** a reset counter, shiny egg odds, and your
+  active shiny chain (with supporting mods, see below).
 - **Extras per game:** in Gold, Silver and Crystal, the Pokégear: make and
   answer phone calls and tune the radio from your phone. In Ruby, Sapphire
   and Emerald, follow contests live, see your berry trees, and which
@@ -122,9 +126,6 @@ happens, to prevent burn-in.
 - **Sharing a network?** Anyone on the same Wi-Fi could open the page. Turn
   on **SECURE MODE** if you play on a network with roommates or guests, or
   turn **PHONE SERVER** off on public Wi-Fi.
-- **Changes wait for the right moment.** Edits from your phone only happen
-  when the game would let you, for example not during a battle or while a
-  menu is open. The page tells you when to wait.
 - **Nothing extra to install.** The few pictures the mod makes for itself
   are built automatically from the game you already imported, and rebuilt
   on their own if you import it again. In Gold, Silver and Crystal, the
@@ -144,9 +145,12 @@ page too. Some mods get extra support:
   Smash Pokémon, so the DexNav leaves those out wherever 1025dex changes
   the wild Pokémon.
 - **Untamed Tohjo:** with SHINY HUNT on, the DexNav shows your shiny chain
-  next to the Pokémon you're chaining, for example `SPEAROW CHAIN: 12`.
+  in Red, Blue, Yellow, Gold, Silver and Crystal: a chain icon and the
+  chain's length next to the Pokémon you're chaining, and a line at the top
+  with your current shiny odds for it (about 1 in 82 at a chain of 100).
 - **Untamed Advanced:** the same for Ruby, Sapphire, FireRed, LeafGreen
-  and Emerald. Its chain isn't saved, so it starts over after a reset.
+  and Emerald (up to about 1 in 16). Its chain isn't saved, so it starts
+  over after a reset.
 - **Modern Spawns:** in Ruby, Sapphire, FireRed, LeafGreen and Emerald the
   DexNav lists the Pokémon Modern Spawns picks. Together with **Wilds of
   Hoenn** (the mod that makes its chain's shinies) and SHINY HUNT on, the

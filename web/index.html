@@ -2894,6 +2894,21 @@
   var lastLiveKey = null;
   // SHINY HUNT + Untamed Tohjo: { species, count } of the running chain
   var liveChain = null;
+
+  // DEXNAV's top line (LIVE and the HANDS-OFF screen): the running chain and
+  // the shiny odds it gives that species right now; null without a chain
+  function chainLine(chain) {
+    if (!chain) return null;
+    var ch = el("div", "sec-head chainline");
+    var left = el("span", "chainwho");
+    var lk = icon("link");
+    if (lk) left.appendChild(lk);
+    nameInto(left, (chain.name || "") + " " + chain.count);
+    ch.appendChild(left);
+    // no odds where no mod makes the chain's shinies: those stay vanilla
+    if (chain.odds > 0) ch.appendChild(el("span", "dim", "SHINY " + oddsText(chain.odds)));
+    return ch;
+  }
   var lastLive = null;
   var openFoes = {};         // "trainer|slot" -> folded out in the team list
   function renderLive(live, force) {
@@ -3087,17 +3102,8 @@
       // SHINY HUNT + Untamed Tohjo / Advanced: the running chain and the
       // shiny odds it gives that species right now, on top (the species'
       // own row only exists where it lives)
-      if (liveChain) {
-        var ch = el("div", "sec-head chainline");
-        var left = el("span", "chainwho");
-        var lk = icon("link");
-        if (lk) left.appendChild(lk);
-        nameInto(left, (liveChain.name || "") + " " + liveChain.count);
-        ch.appendChild(left);
-        // no odds where no mod makes the chain's shinies: those stay vanilla
-        if (liveChain.odds > 0) ch.appendChild(el("span", "dim", "SHINY " + oddsText(liveChain.odds)));
-        nav.appendChild(ch);
-      }
+      var chLine = chainLine(liveChain);
+      if (chLine) nav.appendChild(chLine);
       if (!sections.length) nav.appendChild(el("div", "empty", "No wild POKéMON here."));
       sections.forEach(function (s) {
         var h = el("div", "sec-head");
@@ -5346,7 +5352,10 @@
   function cockpitNav(live) {
     if (trainerBattle(live.battle)) { cockpitTrainer(live.battle); return; }
     var sections = list(live.dexnav);
-    if (!changed("nav", [sections, live.daytime && live.daytime.current])) return;
+    // the chain marks rows too (dexRow reads liveChain): set it from this
+    // state, whichever of LIVE and this screen draws first
+    liveChain = live.chain || null;
+    if (!changed("nav", [sections, live.daytime && live.daytime.current, liveChain])) return;
     var box = ck.nav;
     box.textContent = "";
     box.appendChild(el("div", "sec-k", "DEXNAV"));
@@ -5355,6 +5364,8 @@
     // does its bottom fade
     var body = el("div", "ck-navbody");
     box.appendChild(body);
+    var chLine = chainLine(liveChain);
+    if (chLine) body.appendChild(chLine);
     if (!sections.length) body.appendChild(el("div", "empty", "No wild POKéMON here."));
     sections.forEach(function (s) {
       var h = el("div", "sec-head");
