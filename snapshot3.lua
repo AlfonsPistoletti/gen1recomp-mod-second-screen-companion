@@ -3,7 +3,8 @@
 -- bag, pc), plus what Gen 3 adds to a POKéMON: its nature (and which stats
 -- it raises and lowers), its ability, IVs / EVs instead of DVs / Stat Exp,
 -- and the summary screen's TRAINER MEMO. Nothing here writes to the save.
-return function(mod, sprites, uids, platform)
+-- shiny3: SHINY HUNT on Gen 3: steps to hatch, egg shininess (shiny3.lua)
+return function(mod, sprites, uids, platform, shiny3)
     local Pokemon = require("src.core.game3.pokemon")
     local SummaryData = require("src.core.game3.summary_data")
     local ItemsData = require("src.core.game3.items_data")
@@ -345,9 +346,23 @@ return function(mod, sprites, uids, platform)
     local function monEntry(session, mon, opts)
         opts = opts or {}
         if Pokemon.isEgg(mon) then
-            return { name = "EGG", species = "EGG", egg = true, level = false, hp = 0, maxHp = 0,
+            local egg = { name = "EGG", species = "EGG", egg = true, level = false, hp = 0, maxHp = 0,
                 status = false, shiny = false, front = imageUrl("front", mon), icon = imageUrl("icon", mon),
                 types = {}, statList = {}, moves = {}, item = false }
+            if shiny3 then
+                -- the steps it still needs (FLAME BODY / MAGMA ARMOR count on
+                -- Ruby / Sapphire / Emerald), and with SHINY HUNT and SPOILERS
+                -- whether it hatches shiny (its PID is fixed since it was made)
+                local okH, steps, halved = pcall(shiny3.hatchSteps, session, mon)
+                if okH and steps then
+                    egg.hatchSteps = steps
+                    egg.hatchFast = halved or nil
+                end
+                if mod.options:get("shiny_hunt") and mod.options:get("spoilers") then
+                    egg.eggShiny = shiny3.isShiny(mon)
+                end
+            end
+            return egg
         end
         local sp = Pokemon.speciesOf(mon)
         local speciesName = try(Pokemon.name, sp) or tostring(mon.species)

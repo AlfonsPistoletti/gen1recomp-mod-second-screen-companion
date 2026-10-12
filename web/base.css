@@ -125,6 +125,10 @@ body.need-pin.party-switch .pinbar, body.need-pin.tab-gear .pinbar { display: fl
 .fbtn.on, .fbtn.yes { background: var(--ink); color: var(--paper); }
 .fbtn.on .fsub { color: var(--paper); }
 .picker { margin-top: 10px; border-top: 2px dashed var(--ink); padding-top: 10px; }
+/* SHINY HUNT: the reset count, big, above its - / + / RESET buttons */
+.hunt-count { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 4px 0 12px; }
+.hunt-count b { font-size: 28px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.hunt .note { margin: 8px 0 0; }
 .picker .ptitle { margin: 0 0 8px; font-size: 9px; line-height: var(--subhead-leading, 1.8); }
 .pinbar input {
   width: 5.5em; font: inherit; font-size: 16px; letter-spacing: .1em; padding: 4px 6px; /* 16px: no iOS zoom */
@@ -772,6 +776,13 @@ html.gen3 .mine-party { gap: 22px; padding: 4px 0 2px; }
    (the SAFARI ZONE's) fit the HANDS-OFF column at a good size */
 .navrow { min-height: 30px; }
 .navrow .name { flex: 1 1 auto; }
+/* SHINY HUNT + Untamed Tohjo / Advanced: link icon + N after the chained
+   species' name, sized like the level text (.dexrow .dim, 8px) */
+.chainmark { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; white-space: nowrap; }
+.chainmark .icn { width: 10px; height: 10px; }
+/* DEXNAV's top line: link icon, species and chain length, then its odds */
+.chainwho { display: inline-flex; align-items: center; gap: 4px; }
+.chainwho .icn { width: 12px; height: 12px; }
 .navrow + .navrow { border-top: 2px solid rgba(128, 128, 128, .2); }
 .qmark {
   display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--dim);

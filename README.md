@@ -88,6 +88,8 @@ Find these in the game's options under the mod.
 | PC TRANSFERS | Move Pokémon and items between your party, bag and PC from your phone. |
 | VIBRATION | Your phone buzzes with cries and incoming calls (Android phones; iPhones can't do this from a web page). |
 | HANDS-OFF MODE | Turns the page into the TV dashboard. |
+| PLAYER ON MAP | Shows where you are on the map in LOCATION (and on the TV dashboard) as a square. |
+| SHINY HUNT | Adds a reset counter to the LIVE tab for shiny hunting. Every time you load your save (CONTINUE after a soft reset, or F2), it counts one more. Fix it with - and +, or set it back to 0. It also shows how likely you were to find a shiny by now (Gen 2 and 3: 1 in 8192 per try). The Day-Care shows how likely each egg is to hatch shiny. With SPOILERS on, you can also see whether your eggs, and the roaming legendary in Ruby, Sapphire and Emerald, will be shiny. |
 | SKIN | The page's look: Game Boy, Pokédex Red, FireRed, Emerald, Dark or Modern. |
 
 ## TV dashboard (HANDS-OFF MODE)
@@ -141,6 +143,16 @@ page too. Some mods get extra support:
   for the generations you picked. It doesn't share its fishing and Rock
   Smash Pokémon, so the DexNav leaves those out wherever 1025dex changes
   the wild Pokémon.
+- **Untamed Tohjo:** with SHINY HUNT on, the DexNav shows your shiny chain
+  next to the Pokémon you're chaining, for example `SPEAROW CHAIN: 12`.
+- **Untamed Advanced:** the same for Ruby, Sapphire, FireRed, LeafGreen
+  and Emerald. Its chain isn't saved, so it starts over after a reset.
+- **Modern Spawns:** in Ruby, Sapphire, FireRed, LeafGreen and Emerald the
+  DexNav lists the Pokémon Modern Spawns picks. Together with **Wilds of
+  Hoenn** (the mod that makes its chain's shinies) and SHINY HUNT on, the
+  DexNav also shows your shiny chain and its odds.
+- **Wilds of Kanto Revival:** with SHINY HUNT on, the reset counter shows
+  the wild shiny odds you picked in its SHINY RATE option.
 
 ## Something not working?
 

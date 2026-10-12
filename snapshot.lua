@@ -2,7 +2,8 @@
 -- hold the same mon tables as game.save.party, so HP, PP and status changes
 -- during a fight show up here without any battle-specific code.
 -- kr: Kanto Reforged's extras (kr.lua; nil-safe without it)
-return function(mod, sprites, uids, platform, kr)
+-- shiny2: Gold / Silver / Crystal's hatch steps and egg shininess (shiny2.lua)
+return function(mod, sprites, uids, platform, kr, shiny2)
     local Stats = require("src.pokemon.Stats")
 
     -- The stats each generation shows, in summary-screen order. Gen 2 split
@@ -183,9 +184,19 @@ return function(mod, sprites, uids, platform, kr)
         opts = opts or {}
         local def = data.pokemon[mon.species] or {}
         if isEgg(mon) then
-            return { name = "EGG", species = "EGG", egg = true, level = false, hp = 0, maxHp = 0,
+            local egg = { name = "EGG", species = "EGG", egg = true, level = false, hp = 0, maxHp = 0,
                 status = false, shiny = false, front = false, icon = imageUrl("icon", data, mon),
                 types = {}, statList = {}, moves = {}, item = false }
+            if shiny2 then
+                -- Gold: the steps it still needs, and with SHINY HUNT and
+                -- SPOILERS whether it hatches shiny (fixed since it was made)
+                local okH, steps = pcall(shiny2.hatchSteps, game.save, mon)
+                egg.hatchSteps = okH and steps or nil
+                if mod.options:get("shiny_hunt") and mod.options:get("spoilers") then
+                    egg.eggShiny = shiny2.isShiny(mon)
+                end
+            end
+            return egg
         end
 
         local types = {}

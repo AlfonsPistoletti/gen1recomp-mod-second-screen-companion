@@ -70,6 +70,19 @@ return function(mod)
         label = "HANDS-OFF MODE",
         default = false
     }, {
+        -- LOCATION's HERE map: the player's square on it (the position is
+        -- in /state anyway; this only draws it)
+        key = "map_player",
+        type = "toggle",
+        label = "PLAYER ON MAP",
+        default = false
+    }, {
+        -- LIVE tab: a reset counter for shiny hunting (hunt.lua)
+        key = "shiny_hunt",
+        type = "toggle",
+        label = "SHINY HUNT",
+        default = false
+    }, {
         -- the page's look: a skin from web/skins.css
         key = "skin",
         type = "choice",
@@ -127,9 +140,13 @@ return function(mod)
     local uids = runModule("uids.lua")
     -- Kanto Reforged's extras on Gen 1 / 2 (optional: nil-safe without it)
     local kr = not gen3 and runModule("kr.lua", mod) or nil
-    local snapshot3 = gen3 and uids and platform and runModule("snapshot3.lua", mod, sprites, uids, platform)
+    -- SHINY HUNT on Gold / Silver / Crystal: egg odds, hatch steps (shiny2.lua)
+    local shiny2 = platform and platform.isGen2() and runModule("shiny2.lua", mod) or nil
+    -- and on FireRed / LeafGreen / Ruby / Sapphire / Emerald (shiny3.lua)
+    local shiny3 = gen3 and platform and runModule("shiny3.lua", mod, platform) or nil
+    local snapshot3 = gen3 and uids and platform and runModule("snapshot3.lua", mod, sprites, uids, platform, shiny3)
     local snapshot = snapshot3 and snapshot3.snapshot
-        or (not gen3 and uids and platform and runModule("snapshot.lua", mod, sprites, uids, platform, kr))
+        or (not gen3 and uids and platform and runModule("snapshot.lua", mod, sprites, uids, platform, kr, shiny2))
     -- the ITEM / PACK tab's SORT orders (pure; edits.lua writes them)
     local bagsort = not gen3 and runModule("bagsort.lua")
     -- Gen 3's edits (SWITCH, BAG swaps / SORT, box moves) have their own
@@ -144,7 +161,7 @@ return function(mod)
         if gen3 then return gen3File end
         return platform.isGen2() and gen2File or gen1File
     end
-    local live = platform and runModule(byGen("live.lua", "live2.lua", "live3.lua"), mod, sprites, platform, kr)
+    local live = platform and runModule(byGen("live.lua", "live2.lua", "live3.lua"), mod, sprites, platform, kr, shiny2 or shiny3)
     -- quick actions (BICYCLE, rods, field moves); Gen 3's share the edits'
     -- free-roam gate
     local actions = platform and runModule(byGen("actions.lua", "actions2.lua", "actions3.lua"), mod, platform, edits)
@@ -161,6 +178,8 @@ return function(mod)
     local notify = platform and runModule("notify.lua", mod, platform, sprites)
     -- Emerald's POKeNAV tab (Match Call, berry trees), in GEAR's slot
     local pokenav = platform and platform.isRse() and runModule("pokenav3.lua", mod, platform, live, sprites)
+    -- SHINY HUNT's reset counter (every generation)
+    local hunt = runModule("hunt.lua", mod)
     local page = mod:read("web/index.html")
     -- the look: shared styles plus the standard theme, the same on every
     -- game (the SKIN option's looks, skins.css, work on every game too).
@@ -435,6 +454,52 @@ return function(mod)
         end
         -- HANDS-OFF: the option, the badges for its header, and the news
         state.handsOff = mod.options:get("hands_off") and true or false
+        -- PLAYER ON MAP: the page draws minimap.x / y on the HERE map
+        state.mapPlayer = mod.options:get("map_player") and true or false
+        -- SHINY HUNT: the reset count, shown under the DEXNAV (also on the
+        -- title screen, where LIVE has nothing else)
+        if hunt then
+            local ok, result = pcall(hunt.state, game)
+            if not ok then mod.log:warn("shiny hunt state failed: %s", tostring(result)) end
+            if ok and result then
+                -- the odds of one try (Gen 2 / 3: 1 in 8192, nil where a
+                -- mod changes Gen 2's rule), for "found one by now"
+                if shiny3 then
+                    result.odds = shiny3.ODDS
+                elseif shiny2 and shiny2.baseOdds then
+                    result.odds = shiny2.baseOdds()
+                end
+                -- Wilds of Kanto Revival's SHINY RATE for wild Pokémon (Gen 1 / 2)
+                if not gen3 then
+                    local okW, wild = pcall(hunt.wildRate, game)
+                    result.wild = okW and wild or nil
+                end
+                state.live = state.live or {}
+                state.live.hunt = result
+            end
+            -- the shiny chain of Untamed Tohjo (Gen 1 / 2) or Untamed
+            -- Advanced (Gen 3), marked on its species in DEXNAV
+            if state.live then
+                local okC, chain = pcall(hunt.chain, game, gen3)
+                state.live.chain = okC and chain or nil
+                -- its species' name, for DEXNAV's top line (shown in places
+                -- where that species has no row)
+                if state.live.chain then
+                    local id = state.live.chain.species
+                    local name
+                    if gen3 then
+                        local okP, Pokemon = pcall(require, "src.core.game3.pokemon")
+                        local okN, n = false, nil
+                        if okP then okN, n = pcall(Pokemon.name, tonumber(id)) end
+                        name = okN and n or nil
+                    else
+                        local def = game and game.data and game.data.pokemon and game.data.pokemon[id]
+                        name = type(def) == "table" and def.name or nil
+                    end
+                    state.live.chain.name = name or tostring(id)
+                end
+            end
+        end
         if platform and platform.badges then
             local okB, badges = pcall(platform.badges, game)
             state.badges = okB and badges or {}
@@ -581,7 +646,8 @@ return function(mod)
         ["no effect"] = "It won't have any effect.",
         ["mail give"] = "MAIL needs a letter: give it in the game.",
         ["bad request"] = "The game didn't understand that request.",
-        important = "That's too important to store."
+        important = "That's too important to store.",
+        ["hunt off"] = "Turn on SHINY HUNT in the mod's options first."
     }
 
     -- POST /api/<command> with a small JSON body; replies with fresh state
@@ -681,6 +747,15 @@ return function(mod)
         ["/api/gear/off"] = function()
             if not gear then return nil, "unavailable" end
             return gear.off(game)
+        end,
+        -- SHINY HUNT: + / - one (delta), and RESET to 0
+        ["/api/hunt/add"] = function(body)
+            if not hunt then return nil, "unavailable" end
+            return hunt.add(game, body.delta)
+        end,
+        ["/api/hunt/clear"] = function()
+            if not hunt then return nil, "unavailable" end
+            return hunt.clear(game)
         end
     }
 
@@ -911,6 +986,12 @@ return function(mod)
         if live then pcall(live.track, game) end
         if actions then pcall(actions.tick, game) end
         pcall(edits.tick, game)
+        if hunt then
+            local ok, err = pcall(hunt.tick, game)
+            if not ok then mod.log:warn("shiny hunt tick failed: %s", tostring(err)) end
+        end
+        -- Gen 2's egg odds, when a mod's rules make them a count over frames
+        if shiny2 and shiny2.tick then pcall(shiny2.tick) end
         if gear then
             local ok, err = pcall(gear.tick, game)
             if not ok then mod.log:warn("gear tick failed: %s", tostring(err)) end

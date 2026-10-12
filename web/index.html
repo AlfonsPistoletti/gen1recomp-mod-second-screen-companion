@@ -308,6 +308,8 @@
     right: "M16 13v-2h-2v2h2Zm-2-2V9h-2v2h2Zm0 4v-2h-2v2h2Zm-2-6V7h-2v2h2Zm0 8v-2h-2v2h2ZM10 7V5H8v2h2Zm0 12v-2H8v2h2Z",
     up: "M13 8h-2v2h2V8Zm-2 2H9v2h2v-2Zm4 0h-2v2h2v-2Zm-6 2H7v2h2v-2Zm8 0h-2v2h2v-2ZM7 14H5v2h2v-2Zm12 0h-2v2h2v-2Z",
     down: "M13 16h-2v-2h2v2Zm-2-2H9v-2h2v2Zm4 0h-2v-2h2v2Zm-6-2H7v-2h2v2Zm8 0h-2v-2h2v2ZM7 10H5V8h2v2Zm12 0h-2V8h2v2Z",
+    // link: SHINY HUNT's shiny chain mark in DEXNAV (Untamed Tohjo / Advanced)
+    link: "M4 6h7v2H4zm0 10h7v2H4zM2 8h2v8H2zm18-2h-7v2h7zm0 10h-7v2h7zm2-8h-2v8h2zM7 11h10v2H7z",
     // eye: SPOILERS notes
     eye: "M16 20H8v-2h8v2Zm-8-2H4v-2h4v2Zm12 0h-4v-2h4v2ZM4 16H2v-2h2v2Zm10-6h-2v2h2v-2h2v4h-2v2h-4v-2H8v-4h2V8h4v2Zm8 6h-2v-2h2v2ZM2 14H0v-4h2v4Zm22 0h-2v-4h2v4ZM4 10H2V8h2v2Zm18 0h-2V8h2v2ZM8 8H4V6h4v2Zm12 0h-4V6h4v2Zm-4-2H8V4h8v2Z",
     // phone: the caller on a call
@@ -541,7 +543,18 @@
       facts.appendChild(row);
     }
     if (mon.egg) {
-      fact("", "An EGG. It will hatch once it's walked with long enough.");
+      // Gold: the steps it still needs; with SHINY HUNT and SPOILERS whether
+      // it hatches shiny (decided when the egg was made)
+      if (mon.hatchSteps != null) {
+        fact("", mon.hatchSteps === 0 ? "An EGG. It's about to hatch!"
+          : "An EGG. It hatches in about " + stepsText(mon.hatchSteps) + ".");
+        // Ruby / Sapphire / Emerald: FLAME BODY / MAGMA ARMOR in the party
+        if (mon.hatchFast) fact("", "FLAME BODY / MAGMA ARMOR in the party: hatching twice as fast.");
+      } else {
+        fact("", "An EGG. It will hatch once it's walked with long enough.");
+      }
+      if (mon.eggShiny === true) fact("", "★ It will hatch SHINY!");
+      else if (mon.eggShiny === false) fact("", "It won't hatch shiny.");
       top.appendChild(facts);
       d.appendChild(top);
       return d;
@@ -827,6 +840,9 @@
     var status = fainted && !mon.egg ? "FNT" : mon.status;
     if (status) line1.appendChild(statusMark(status, "st"));
     if (!mon.egg) line1.appendChild(el("span", "lv", ":L" + mon.level));
+    // Gold: an egg shows the steps it still needs where the level would be
+    else if (mon.hatchSteps != null) line1.appendChild(el("span", "lv", mon.hatchSteps === 0 ? "HATCHING" : stepsText(mon.hatchSteps)));
+    if (mon.egg && mon.eggShiny === true) line1.appendChild(el("span", "lv", "★"));
     row.appendChild(line1);
     if (!mon.egg) row.appendChild(hpBar(mon));
     c.appendChild(row);
@@ -2133,6 +2149,18 @@
     return (v < 10 ? v.toFixed(1) : Math.round(v)) + "%";
   }
 
+  // "1,234 STEPS" (an egg's steps to hatch)
+  function stepsText(n) {
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (n === 1 ? " STEP" : " STEPS");
+  }
+
+  // SHINY HUNT: a chance as "1 in 64" (rounded), "NEVER" at 0
+  function oddsText(p) {
+    if (!(p > 0)) return "NEVER";
+    var n = Math.round(1 / p);
+    return n <= 1 ? "ALWAYS" : "1 in " + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
   function levelText(e) {
     if (!e.minL) return "";
     return e.minL === e.maxL ? "L" + e.minL : "L" + e.minL + "-" + e.maxL;
@@ -2157,11 +2185,25 @@
   function dexRow(e) {
     // a DEXNAV row: divided from the next one like the other lists' rows
     var row = el("div", "dexrow navrow" + (e.name ? "" : " unknown"));
-    var icon = el("div", "icon");
-    if (e.icon) icon.style.backgroundImage = "url(" + e.icon + ")";
-    else if (!e.name) { icon.className = "qmark"; icon.textContent = "?"; }
-    row.appendChild(icon);
-    row.appendChild(nameInto(el("span", "name"), e.name || "???"));
+    // (not named `icon`: that would hide the icon() function used below)
+    var pic = el("div", "icon");
+    if (e.icon) pic.style.backgroundImage = "url(" + e.icon + ")";
+    else if (!e.name) { pic.className = "qmark"; pic.textContent = "?"; }
+    row.appendChild(pic);
+    // SHINY HUNT + SPOILERS: a roaming legendary already known to be shiny
+    var nameEl = nameInto(el("span", "name"), (e.name || "???") + (e.shiny === true ? " ★" : ""));
+    // SHINY HUNT + Untamed Tohjo: the species being chained, and how long
+    if (liveChain && e.species && e.species === liveChain.species) {
+      // `dim`: the same size and colour as the level text after it (.dexrow .dim);
+      // the link icon stands for "chain" to save the row's space
+      var mark = el("span", "chainmark dim");
+      mark.title = "Shiny chain: " + liveChain.count;
+      var link = icon("link");
+      if (link) mark.appendChild(link); else mark.appendChild(document.createTextNode("CHAIN "));
+      mark.appendChild(document.createTextNode(String(liveChain.count)));
+      nameEl.appendChild(mark);
+    }
+    row.appendChild(nameEl);
     if (e.owned) {
       var own = el("span", "own");
       own.title = "Caught";
@@ -2622,8 +2664,35 @@
   // whether the map is wanted: LOCATION unfolded, or the HANDS-OFF screen
   function locationOpen() { return !!liveOpen.location || !!handsOffNow; }
 
+  // PLAYER ON MAP (the mod option): the player's square on the HERE map, a
+  // dark frame around a bright middle so it shows on every terrain colour
+  var mapPlayer = false;
+  var MM_PLAYER = { ink: "#181818", fill: "#f8d030" };
+
+  // the player's step on the map `d` shows, or null (option off, another
+  // map, or no position yet)
+  function playerCell(d) {
+    var s = mmSummary;
+    if (!mapPlayer || !s || !d || s.x === false || s.y === false || s.x == null || s.y == null) return null;
+    if (String(s.mapId) !== String(d.mapId)) return null;
+    if (s.x < 0 || s.y < 0 || s.x >= (d.w || 0) || s.y >= (d.h || 0)) return null;
+    return { x: s.x, y: s.y };
+  }
+
+  // repaint every HERE map on the page (LIVE and the HANDS-OFF screen) whose
+  // player square moved, on the same canvas
+  function repaintPlayer() {
+    var maps = document.querySelectorAll("canvas.mmcanvas");
+    for (var i = 0; i < maps.length; i++) {
+      var c = maps[i];
+      var me = playerCell(mmData);
+      if (c.paintMap && c.dataset.player !== (me ? me.x + "," + me.y : "")) c.paintMap();
+    }
+  }
+
   function syncMinimap(summary) {
     mmSummary = summary || null;
+    repaintPlayer();
     if (!mmSummary || !locationOpen()) return;
     if (!mmData || mmData.version !== mmSummary.version) {
       if (mmLoading === mmSummary.version) return;
@@ -2710,41 +2779,57 @@
     }
     var g = canvas.getContext("2d");
     var kinds = {};
-    for (var y = 0; y < h; y++) {
-      var row = rows[y] || "";
-      for (var x = 0; x < w; x++) {
-        var c = row.charAt(x);
-        // '"': tall grass, where wild POKéMON appear on foot
-        if (c === '"') kinds.grass = true;
-        g.fillStyle = c === "~" ? MM_COLORS.water : c === '"' ? MM_COLORS.grass
-          : (c === "." || c === "+") ? MM_COLORS.ground : MM_COLORS.blocked;
-        g.fillRect(x * cell, y * cell, cell, cell);
+    // painted again in place (repaintPlayer) when the player moves, so the
+    // canvas stays the same element: only the map's own data is redrawn
+    function paint() {
+      for (var y = 0; y < h; y++) {
+        var row = rows[y] || "";
+        for (var x = 0; x < w; x++) {
+          var c = row.charAt(x);
+          // '"': tall grass, where wild POKéMON appear on foot
+          if (c === '"') kinds.grass = true;
+          g.fillStyle = c === "~" ? MM_COLORS.water : c === '"' ? MM_COLORS.grass
+            : (c === "." || c === "+") ? MM_COLORS.ground : MM_COLORS.blocked;
+          g.fillRect(x * cell, y * cell, cell, cell);
+        }
       }
+      list(d.warps).forEach(function (wp) {
+        kinds[wp.kind] = true;
+        g.fillStyle = MM_COLORS[wp.kind] || MM_COLORS.door;
+        g.fillRect(wp.x * cell, wp.y * cell, cell, cell);
+        if (wp.kind === "exit" || wp.kind === "door") {
+          g.fillStyle = "#ffffff";
+          var s = Math.max(1, Math.floor(cell / 3));
+          g.fillRect(wp.x * cell + (cell - s) / 2, wp.y * cell + (cell - s) / 2, s, s);
+        }
+      });
+      list(d.items).forEach(function (it) {
+        g.beginPath();
+        g.arc(it.x * cell + cell / 2, it.y * cell + cell / 2, Math.max(1.5, cell * 0.32), 0, Math.PI * 2);
+        g.fillStyle = it.hidden ? "rgba(224,48,32,0.45)" : "#e03020";
+        g.fill();
+      });
+      // Emerald, ROUTE 119 with SPOILERS: today's FEEBAS tiles, a ring
+      list(d.feebas).forEach(function (f) {
+        g.beginPath();
+        g.arc(f.x * cell + cell / 2, f.y * cell + cell / 2, Math.max(2, cell * 0.38), 0, Math.PI * 2);
+        g.lineWidth = Math.max(1, cell / 5);
+        g.strokeStyle = "#f8a020";
+        g.stroke();
+      });
+      // PLAYER ON MAP (the option): the player's square, on this map only
+      var me = playerCell(d);
+      if (me) {
+        g.fillStyle = MM_PLAYER.ink;
+        g.fillRect(me.x * cell, me.y * cell, cell, cell);
+        var b = Math.max(1, Math.floor(cell / 5));
+        g.fillStyle = MM_PLAYER.fill;
+        g.fillRect(me.x * cell + b, me.y * cell + b, cell - 2 * b, cell - 2 * b);
+      }
+      canvas.dataset.player = me ? me.x + "," + me.y : "";
     }
-    list(d.warps).forEach(function (wp) {
-      kinds[wp.kind] = true;
-      g.fillStyle = MM_COLORS[wp.kind] || MM_COLORS.door;
-      g.fillRect(wp.x * cell, wp.y * cell, cell, cell);
-      if (wp.kind === "exit" || wp.kind === "door") {
-        g.fillStyle = "#ffffff";
-        var s = Math.max(1, Math.floor(cell / 3));
-        g.fillRect(wp.x * cell + (cell - s) / 2, wp.y * cell + (cell - s) / 2, s, s);
-      }
-    });
-    list(d.items).forEach(function (it) {
-      g.beginPath();
-      g.arc(it.x * cell + cell / 2, it.y * cell + cell / 2, Math.max(1.5, cell * 0.32), 0, Math.PI * 2);
-      g.fillStyle = it.hidden ? "rgba(224,48,32,0.45)" : "#e03020";
-      g.fill();
-    });
-    // Emerald, ROUTE 119 with SPOILERS: today's FEEBAS tiles, a ring
-    list(d.feebas).forEach(function (f) {
-      g.beginPath();
-      g.arc(f.x * cell + cell / 2, f.y * cell + cell / 2, Math.max(2, cell * 0.38), 0, Math.PI * 2);
-      g.lineWidth = Math.max(1, cell / 5);
-      g.strokeStyle = "#f8a020";
-      g.stroke();
-    });
+    canvas.paintMap = paint;
+    paint();
     var wrap = el("div", "mmwrap");
     wrap.appendChild(canvas);
     target.appendChild(wrap);
@@ -2807,26 +2892,122 @@
   }
 
   var lastLiveKey = null;
+  // SHINY HUNT + Untamed Tohjo: { species, count } of the running chain
+  var liveChain = null;
   var lastLive = null;
   var openFoes = {};         // "trainer|slot" -> folded out in the team list
   function renderLive(live, force) {
     renderLiveBody(live, force);
   }
 
+  // ---- LIVE: SHINY HUNT (the mod option): the reset counter -------------------
+  // Every load of the save counts (the CONTINUE after a soft reset, F2);
+  // - / + correct it by one, RESET asks first, then sets it back to 0.
+  var huntConfirm = false;
+  var huntSending = false;
+
+  function huntPost(path, body) {
+    if (huntSending) return;
+    huntSending = true;
+    huntConfirm = false;
+    fetch(path, { method: "POST", headers: postHeaders(), body: JSON.stringify(body || {}) })
+      .then(function (r) {
+        return r.text().then(function (text) { return { ok: r.ok, status: r.status, text: text }; });
+      })
+      .then(function (res) {
+        huntSending = false;
+        if (res.ok) { apply(res.text, true); return; }
+        var msg = null;
+        try { msg = JSON.parse(res.text).error; } catch (e) {}
+        toast(msg || "Something went wrong.");
+        renderLive(lastLive, true);
+      })
+      .catch(function () {
+        huntSending = false;
+        toast("Can't reach the game.");
+        renderLive(lastLive, true);
+      });
+  }
+
+  function huntBox(hunt, redraw) {
+    var count = Number(hunt.count) || 0;
+    var fold = foldBox("hunt", "hunt", iconHead("shiny", "SHINY HUNT", count + (count === 1 ? " RESET" : " RESETS")), redraw);
+    var body = fold.body;
+    if (!body) return fold.box;
+    var big = el("div", "hunt-count");
+    big.appendChild(el("b", null, String(count)));
+    big.appendChild(el("span", "dim", count === 1 ? "RESET" : "RESETS"));
+    body.appendChild(big);
+    // Gen 2 / 3: how likely at least one shiny would have shown by now, at
+    // the game's odds per try (1 in 8192)
+    // Wilds of Kanto Revival: its SHINY RATE for wild Pokémon; where the game
+    // has no odds of its own to show (Red / Blue / Yellow), the counter
+    // works with that one
+    var wild = hunt.wild || null;
+    var perTry = hunt.odds > 0 ? hunt.odds : (wild && wild.odds > 0 ? wild.odds : 0);
+    if (perTry > 0) {
+      var found = 1 - Math.pow(1 - perTry, count);
+      var line = el("div", "sec-head");
+      line.appendChild(el("span", null, (hunt.odds > 0 ? "ODDS " : "WILD ODDS ") + oddsText(perTry) + " PER TRY"));
+      line.appendChild(el("span", "dim", (found < 0.001 && found > 0 ? "<0.1%" : pct(found)) + " BY NOW"));
+      body.appendChild(line);
+    }
+    if (wild && (hunt.odds > 0 || !(wild.odds > 0))) {
+      var wl = el("div", "sec-head");
+      wl.appendChild(el("span", null, "WILD POKéMON"));
+      wl.appendChild(el("span", "dim", wild.odds > 0 ? oddsText(wild.odds) : "NO SHINIES"));
+      body.appendChild(wl);
+    }
+    if (wild) body.appendChild(el("p", "note", "Wild shiny odds from " + wild.name + "'s SHINY RATE."));
+    var paired = !secureMode || keyValid;
+    if (huntConfirm && paired) {
+      var panel = el("div", "picker");
+      panel.appendChild(el("p", "ptitle", "Set the counter back to 0? The " + count + (count === 1 ? " reset" : " resets") + " counted so far are gone."));
+      var ask = el("div", "fgrid");
+      ask.appendChild(choiceButton("YES, TO 0", function () { huntPost("/api/hunt/clear"); }, "yes"));
+      ask.appendChild(choiceButton("NO", function () { huntConfirm = false; redraw(); }));
+      panel.appendChild(ask);
+      body.appendChild(panel);
+      return fold.box;
+    }
+    var grid = el("div", "fgrid");
+    var minus = choiceButton("-1", function () { huntPost("/api/hunt/add", { delta: -1 }); });
+    minus.setAttribute("aria-label", "One less");
+    var plus = choiceButton("+1", function () { huntPost("/api/hunt/add", { delta: 1 }); });
+    plus.setAttribute("aria-label", "One more");
+    var reset = choiceButton("RESET", function () { huntConfirm = true; redraw(); });
+    reset.setAttribute("aria-label", "Set the counter back to 0");
+    minus.disabled = !paired || huntSending || count === 0;
+    plus.disabled = !paired || huntSending;
+    reset.disabled = !paired || huntSending || count === 0;
+    grid.appendChild(minus);
+    grid.appendChild(plus);
+    grid.appendChild(reset);
+    body.appendChild(grid);
+    body.appendChild(el("p", "note", paired
+      ? "Counts every load of the save: CONTINUE after a soft reset (A+B+SELECT+START) or F2."
+      : "SECURE MODE is on: enter the PIN to change the counter."));
+    return fold.box;
+  }
+
   function renderLiveBody(live, force) {
-    var key = JSON.stringify(live || null);
+    // pairing (SECURE MODE) changes what SHINY HUNT's buttons may do
+    var key = JSON.stringify([live || null, secureMode, keyValid]);
     if (key === lastLiveKey && !force) return;
     lastLiveKey = key;
     lastLive = live;
+    liveChain = live && live.chain || null;
     if (!live || !live.battle) openFoes = {};
     liveEl.textContent = "";
     // below QUICK ACTIONS too, at the very bottom of the tab
     liveSpoilersEl.hidden = !(live && live.spoilers);
+    var redraw = function () { renderLive(lastLive, true); };
     if (!live || (!live.location && !live.battle)) {
       liveEl.appendChild(el("div", "box empty", "Not in the game world yet."));
+      // SHINY HUNT: the count stays in view on the title screen, between resets
+      if (live && live.hunt) liveEl.appendChild(huntBox(live.hunt, redraw));
       return;
     }
-    var redraw = function () { renderLive(lastLive, true); };
     if (live.location) {
       // folded: the map icon and the place's name; open adds the minimap
       var locHead = iconHead("map", "LOCATION", live.location.name);
@@ -2903,6 +3084,20 @@
         });
         nav.appendChild(dt);
       }
+      // SHINY HUNT + Untamed Tohjo / Advanced: the running chain and the
+      // shiny odds it gives that species right now, on top (the species'
+      // own row only exists where it lives)
+      if (liveChain) {
+        var ch = el("div", "sec-head chainline");
+        var left = el("span", "chainwho");
+        var lk = icon("link");
+        if (lk) left.appendChild(lk);
+        nameInto(left, (liveChain.name || "") + " " + liveChain.count);
+        ch.appendChild(left);
+        // no odds where no mod makes the chain's shinies: those stay vanilla
+        if (liveChain.odds > 0) ch.appendChild(el("span", "dim", "SHINY " + oddsText(liveChain.odds)));
+        nav.appendChild(ch);
+      }
       if (!sections.length) nav.appendChild(el("div", "empty", "No wild POKéMON here."));
       sections.forEach(function (s) {
         var h = el("div", "sec-head");
@@ -2914,6 +3109,9 @@
       });
     }
     liveEl.appendChild(navFold.box);
+
+    // SHINY HUNT: the reset counter, right under the DEXNAV
+    if (live.hunt) liveEl.appendChild(huntBox(live.hunt, redraw));
 
     // the DAY-CARE (Gen 1 ROUTE 5, Gen 2 ROUTE 34, Gen 3 ROUTE 5 and FOUR
     // ISLAND) while it looks after something: each POKéMON's level when
@@ -2939,6 +3137,16 @@
             careFold.body.appendChild(row);
           });
           if (p.compat) careFold.body.appendChild(el("p", "note carenote", p.compat));
+          // SHINY HUNT: each egg's chance to hatch shiny, and with SPOILERS
+          // whether the next egg (already made) is
+          if (p.shiny) {
+            var sh = el("div", "sec-head");
+            sh.appendChild(el("span", null, "SHINY EGG"));
+            sh.appendChild(el("span", "dim", p.shiny.pending ? "COUNTING..." : oddsText(p.shiny.odds) + " PER EGG"));
+            careFold.body.appendChild(sh);
+            if (p.shiny.next === true) careFold.body.appendChild(el("p", "note carenote", "★ The next EGG will hatch SHINY!"));
+            else if (p.shiny.next === false) careFold.body.appendChild(el("p", "note carenote", "The next EGG won't hatch shiny."));
+          }
         });
       }
       liveEl.appendChild(careFold.box);
@@ -4679,6 +4887,8 @@
     renderBag(state.bag || {});
     syncPc(state.pc);
     renderLive(state.live);
+    // PLAYER ON MAP (the option), before the map is synced and repainted
+    mapPlayer = !!state.mapPlayer;
     syncMinimap(state.minimap);
     syncDex(state.pokedex);
     rodsState = list(state.rods);

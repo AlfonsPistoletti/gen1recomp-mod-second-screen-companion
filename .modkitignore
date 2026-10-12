@@ -2,3 +2,6 @@
 testbattle3.lua
 tests/kr_test.lua
 tests/transfer_test.lua
+tests/hunt_test.lua
+tests/shiny2_test.lua
+tests/shiny3_test.lua

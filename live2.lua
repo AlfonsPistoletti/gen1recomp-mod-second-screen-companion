@@ -10,7 +10,8 @@
 --     (shownMon / shownHp / shownStatus / showEnemyHud) apart from the
 --     model (.battle, src/battle/gen2/Battle.lua), which runs a whole turn
 --     ahead: the phone reads the drawn side so it never runs ahead
-return function(mod, sprites, platform)
+-- kr: unused on Gen 2; shiny2: SHINY HUNT's egg odds (shiny2.lua, nil-safe)
+return function(mod, sprites, platform, kr, shiny2)
     local Encounter = require("src.battle.gen2.Encounter")
 
     local ROD_ORDER = { "OLD_ROD", "GOOD_ROD", "SUPER_ROD" }
@@ -609,6 +610,19 @@ return function(mod, sprites, platform)
             local okC, value = pcall(Breeding.compatibility, data, raw[1], raw[2])
             local key = okC and Breeding.compatibilityText(value)
             place.compat = key and COMPAT[key] and COMPAT[key]:format(mons[2].name) or false
+            -- SHINY HUNT: the chance each egg of this pair hatches shiny, and
+            -- with SPOILERS whether the next one (already made, dc.egg) does
+            if shiny2 and shiny2.eggOdds and mod.options:get("shiny_hunt") then
+                -- pending: still counting (a mod's shiny / gender rules,
+                -- shiny2.tick finishes it over the next frames)
+                local okO, odds, pending = pcall(shiny2.eggOdds, data, raw[1], raw[2])
+                if okO and (odds or pending) then
+                    place.shiny = pending and { pending = true } or { odds = odds }
+                    if mod.options:get("spoilers") and type(dc.egg) == "table" then
+                        place.shiny.next = shiny2.isShiny(dc.egg)
+                    end
+                end
+            end
         end
         return { places = { place } }
     end

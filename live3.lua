@@ -4,7 +4,9 @@
 -- (region_map.c GetMapName), the DexNav reads the ROM's wild tables
 -- (land / water / Rock Smash / the three rods, with pret's slot weights)
 -- and the battle comes from the game3 battle state.
-return function(mod, sprites, platform)
+-- shiny3: SHINY HUNT on Gen 3 (shiny3.lua, nil-safe); the 4th argument is
+-- Kanto Reforged's, unused here
+return function(mod, sprites, platform, _, shiny3)
     local Pokemon = require("src.core.game3.pokemon")
     local ItemsData = require("src.core.game3.items_data")
 
@@ -159,13 +161,68 @@ return function(mod, sprites, platform)
     -- nil where it leaves the ROM's table alone. Its weights are only there
     -- where its pick is a weighted roll; else the chance is left out.
     local PROVIDERS = { "1025dex" }
+
+    -- Modern Spawns (modern_spawns) re-picks the species of the land and
+    -- water slots (not the rods or ROCK SMASH, which it leaves to the game)
+    -- and publishes its tables: exports.tableFor(mapId, "grass" | "water")
+    -- -> { slots = { { species = its id, minLevel, maxLevel } } } in the
+    -- game's own slot order, so FireRed's slot weights still apply. Under
+    -- COMPLETE DEX each slot is one of exports.poolFor's species, each
+    -- equally likely, so a slot's weight is split among them. Its ids go to
+    -- the engine's numbers through the national dex number (profileOf.dex).
+    local function modernEncounters(mapId)
+        local handle = mod.find and mod.find("modern_spawns")
+        local api = handle and type(handle.exports) == "table" and handle.exports or nil
+        if not (api and type(api.tableFor) == "function" and type(api.profileOf) == "function") then return nil end
+        if type(api.isActive) == "function" and not try(api.isActive) then return nil end
+        if type(api.generation) == "function" and try(api.generation) ~= 3 then return nil end
+        local numbers = {}
+        local function internal(id)
+            if numbers[id] == nil then
+                local profile = try(api.profileOf, id)
+                local dex = type(profile) == "table" and tonumber(profile.dex)
+                numbers[id] = dex and Pokemon.speciesFromNational and tonumber(try(Pokemon.speciesFromNational, dex)) or false
+            end
+            return numbers[id] or nil
+        end
+        local out, any = {}, false
+        for _, kind in ipairs({ { "land", "grass", LAND_WEIGHTS }, { "water", "water", WATER_WEIGHTS } }) do
+            local t = try(api.tableFor, mapId, kind[2])
+            if type(t) == "table" and type(t.slots) == "table" then
+                local pools = type(api.poolFor) == "function" and try(api.poolFor, mapId, kind[2]) or nil
+                local slots = {}
+                for i, s in ipairs(t.slots) do
+                    local w = kind[3][i]
+                    if w and type(s) == "table" then
+                        local pool = type(pools) == "table" and type(pools[i]) == "table" and #pools[i] > 0 and pools[i]
+                            or { s.species }
+                        for _, id in ipairs(pool) do
+                            local sp = internal(id)
+                            if sp and sp > 0 then
+                                slots[#slots + 1] = { species = sp, minLevel = s.minLevel or s.level,
+                                    maxLevel = s.maxLevel or s.level, weight = w / #pool }
+                            end
+                        end
+                    end
+                end
+                if #slots > 0 then out[kind[1]] = { slots = slots }; any = true end
+            end
+        end
+        return any and out or nil
+    end
+
+    -- the wild POKéMON a mod picks for this map, and whether the rods and
+    -- ROCK SMASH stay the game's (Modern Spawns leaves them; 1025dex picks
+    -- them too but doesn't say)
     local function modEncounters(mapId)
+        local modern = modernEncounters(mapId)
+        if modern then return modern, true end
         for _, id in ipairs(PROVIDERS) do
             local handle = mod.find and mod.find(id)
             local fn = handle and type(handle.exports) == "table" and handle.exports.dexnavEncounters
             if type(fn) == "function" then
                 local t = try(fn, mapId)
-                if type(t) == "table" then return t end
+                if type(t) == "table" then return t, false end
             end
         end
         return nil
@@ -179,12 +236,24 @@ return function(mod, sprites, platform)
             local w = type(s) == "table" and tonumber(s.weight)
             if w and w > 0 then total = total + w else weighted = false end
         end
-        local list = {}
+        -- one row per species: its slots' shares added up, their level
+        -- ranges joined (Modern Spawns' pools put one species in many slots)
+        local list, bySpecies = {}, {}
         for _, s in ipairs(slots) do
             local sp = type(s) == "table" and tonumber(s.species)
             if sp and sp > 0 then
                 local share = weighted and total > 0 and tonumber(s.weight) / total or false
-                list[#list + 1] = dexEntry(save, sp, share, tonumber(s.minLevel), tonumber(s.maxLevel), spoilers)
+                local lo, hi = tonumber(s.minLevel), tonumber(s.maxLevel)
+                local e = bySpecies[sp]
+                if not e then
+                    e = dexEntry(save, sp, share, lo, hi, spoilers)
+                    bySpecies[sp] = e
+                    list[#list + 1] = e
+                else
+                    if share and e.chance then e.chance = e.chance + share end
+                    if lo and (not e.minL or lo < e.minL) then e.minL = lo end
+                    if hi and (not e.maxL or hi > e.maxL) then e.maxL = hi end
+                end
             end
         end
         if #list == 0 then return nil end
@@ -212,7 +281,7 @@ return function(mod, sprites, platform)
         -- ROM's section stands in. It picks for the rods and ROCK SMASH as
         -- well but doesn't publish those, so they're left out rather than
         -- shown wrong
-        local picked = modEncounters(mapId)
+        local picked, keepRods = modEncounters(mapId)
         local water = slotsOf(t.water)
         local landRateShare = math.min(landRate * 16, 2880) / 2880
         local waterRateShare = math.min(waterRate * 16, 2880) / 2880
@@ -222,7 +291,7 @@ return function(mod, sprites, platform)
                 cave and "CAVE" or "GRASS", landRateShare, spoilers)
         out[#out + 1] = picked and modSection(save, picked.water, "surf", "SURF", water and waterRateShare, spoilers)
             or section(save, water, 1, WATER_WEIGHTS, "surf", "SURF", waterRateShare, spoilers)
-        if picked then return out end
+        if picked and not keepRods then return out end
         local rocks, rockRate = slotsOf(t.rocks)
         out[#out + 1] = section(save, rocks, 1, WATER_WEIGHTS, "rock", "ROCK SMASH",
             math.min(rockRate * 16, 2880) / 2880, spoilers)
@@ -990,6 +1059,16 @@ return function(mod, sprites, platform)
                     local okB, Breeding = pcall(require, "src.core.game3.breeding")
                     local c = okB and try(Breeding.compatibility, dc)
                     place.compat = c and COMPAT[c] or false
+                    -- SHINY HUNT: 1 in 8192 per egg whatever the parents; with
+                    -- SPOILERS, on Ruby / Sapphire / Emerald, whether the egg
+                    -- waiting already is (its PID is whole by then)
+                    if shiny3 and c and c > 0 and mod.options:get("shiny_hunt") then
+                        place.shiny = { odds = shiny3.ODDS }
+                        if mod.options:get("spoilers") then
+                            local next = try(shiny3.pendingEggShiny, session, dc)
+                            if next ~= nil then place.shiny.next = next end
+                        end
+                    end
                 end
                 places[#places + 1] = place
             end
@@ -1060,6 +1139,12 @@ return function(mod, sprites, platform)
             local r = #out.dexnav > 0 and L.roamerOn(game, mapId)
             if r then
                 local e = dexEntry(platform.save(game), tonumber(r.species), false, tonumber(r.level), tonumber(r.level), spoilers)
+                -- SHINY HUNT + SPOILERS: whether it is shiny, where its PID
+                -- is kept (Ruby / Sapphire / Emerald; FireRed's battles roll
+                -- a new one each time, so nothing is known there)
+                if shiny3 and spoilers and mod.options:get("shiny_hunt") then
+                    e.shiny = try(shiny3.roamerShiny, platform.save(game), r)
+                end
                 out.dexnav[#out.dexnav + 1] = { kind = "roam", label = "ROAMING", rate = false,
                     note = "ON THIS ROUTE", list = { e } }
             end
